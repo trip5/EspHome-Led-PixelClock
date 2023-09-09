@@ -50,7 +50,7 @@ Of course, this is ESPHome, so you can change the button functions by editing th
 
 ### Rotation Sensor
 
-This clock has a rotation sensor. It seems to be just a mercury-like bulb that detects if the clock has been flipped. This is functional to flip the clock but you could also use it for other things (ie)
+This clock has a rotation sensor. It seems to be just a mercury-like bulb that detects if the clock has been flipped. This is functional to flip the clock but you could also use it for other things if you wish.
 
 ## Integration with Home Assistant
 
