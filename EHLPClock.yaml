@@ -1,8 +1,8 @@
 substitutions:
   name: led-pixelclock-blue
   friendly_name: Led-PixelClock-Blue
-  waiting: " EHLPC " # shows when waiting for time
-  time_zone: "Asia/Seoul" # This will be your 'home' Timezone. Check https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+  waiting: "EHLPClock . . . " # shows when waiting for time
+  time_zone: "Asia/Seoul" # Check https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
   scl_pin: GPIO4
   sda_pin: GPIO5
   clk_pin: GPIO14
@@ -17,7 +17,7 @@ esphome:
   comment: "EHLPClock from Trip5"
   project:
     name: "Trip5.EspHomeLedPixelClock"
-    version: "2023.09.09"
+    version: "2023.09.10"
   on_boot:
     then:
       - ds1307.read_time:
@@ -31,11 +31,12 @@ wifi:
   password: !secret wifi_password
 
 font:
-  - file: fonts/MatrixClock-Chunky8X.bdf #
+# Get the fonts from https://github.com/trip5/MatrixClockFonts (but you can use others too!)
+  - file: fonts/MatrixClock-Chunky8X.bdf
     id: default_font
     glyphs:  |
       ! "#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz°
-  - file: fonts/MatrixClock-Light8X.bdf #
+  - file: fonts/MatrixClock-Light8X.bdf
     id: message_font
     glyphs:  |
       ! "#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz°{|}~¡¢£¤¥¦§¨©ª«¬®¯±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ
@@ -148,10 +149,22 @@ binary_sensor:
       - delayed_on: 10ms
       - delayed_off: 10ms
     on_multi_click:
-      #Click will toggle 12-hour mode
+      #Click will display the last message for 10 seconds
       - timing:
           - ON for at most 0.5s
           - OFF for at least 0.5s
+        then:
+          lambda: |-
+            if (id(message) != "") {
+              id(message_alive_time) = 10;
+              id(message_display_time) = 10;
+            }
+      #Double-Click will toggle 12-hour mode
+      - timing:
+          - ON for at most 1s
+          - OFF for at most 0.5s
+          - ON for at most 1s
+          - OFF for at least 0.1s
         then:
           - switch.toggle: hour12_select
       #Hold will show the IP Address
@@ -169,11 +182,12 @@ binary_sensor:
 display:
 # https://community.home-assistant.io/t/reusable-function-for-lambdas/296435/10
   - platform: max7219digit
+    id: matrix
     cs_pin: $cs_pin
     num_chips: 4
     update_interval: 1s
-    reverse_enable: true # true for button-side up / false for down
-    rotate_chip: 0 # 0 for button-side up (default) / 180 for down
+    reverse_enable: true # true for button-side up / false for down (be warned that if you change these 2 settings you may get a garbled display)
+    rotate_chip: 0 # 0 for button-side up (default) / 180 for down (you could switch them but then I would recommend go change the inverted settting for the gpio)
     scroll_mode: continuous
     lambda: |-
       // Display the message if all conditions are met
@@ -207,6 +221,14 @@ display:
         it.print((32 / 2), (8 / 2), id(default_font), TextAlign::CENTER, "$waiting");
       }
       it.intensity(id(brightness_level));
+      // This next section allows the rotation sensor to work - need to directly change settings in the component: https://esphome.io/api/max7219_8h
+      if (id(rotation_mode).state == 1) {
+        id(matrix)->set_reverse(0);
+        id(matrix)->set_chip_orientation(2);
+      } else {
+        id(matrix)->set_reverse(1);
+        id(matrix)->set_chip_orientation(0);
+      }
 
 globals:
    - id: brightness_level
@@ -259,7 +281,7 @@ button:
           id(message_alive_time) = 10;
           id(message_display_time) = 10;
           id(message_clock_time) = 0;
-          id(message) = ("   IP " + id(wifi_ip).state);
+          id(message) = (" IP : " + id(wifi_ip).state + " . . . . . ");
 
 switch:
   - platform: template

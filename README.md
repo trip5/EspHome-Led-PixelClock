@@ -30,8 +30,6 @@ You should then connect to the hotspot (with a mobile phone) and then go to 192.
 The clock will display its IP address on boot and also by holding down the set button for more than 1 second. When returning home, you will have to go through this process again.
 Be sure if you are using this clock as a travel clock to NOT use Home Assistant as a time source (it doesn't by default anyways).
 
-There does appear to be some errors with "Component preferences took a long time for an operation" but it only happens when saving persistent variables to flash and doesn't seem to affect functionality, unless you try to change a variable during this moment.
-
 ### Screenshot
 
 Ideally, this would look a lot prettier than it does but there's not a lot I can with the default ESPHome WebUI.
@@ -40,24 +38,19 @@ Ideally, this would look a lot prettier than it does but there's not a lot I can
 
 ### Button Functions
 
-There's only one useable button on this clock but thanks to multi-click, we can use it for a few functions.  I'll start with 2 for now.
+There's only one useable button on this clock but thanks to multi-click, we can use it for a few functions.
 
 | Download Button     | Functionality          |
 | ------------------- | ---------------------- |
-| Short-click         | Toggle 12/24-hour mode |
+| Short-click         | Show last message for 10 seconds |
+| Double-click        | Toggle 12/24-hour mode |
 | Long-press 1 second | Show the clock's IP address |
 
-Of course, this is ESPHome, so you can change the button functions by editing the YAML.  There's also a rotation sensor.  Originally it was supposed to allow the clock display to flip 180 degrees but I'm not sure I can integrate this functionality.
+Of course, this is ESPHome, so you can change the button functions by editing the YAML.
 
-### Time Zones
+### Rotation Sensor
 
-(Not included yet but will be soon.)
-
-It's up to you how to handle time zones. I prefer to keep my home time zone (Korea) as the one I live in and use the offset option according to the time difference with Korea.
-The offsets I include are mostly for demonstration purposes.  You can use positive or negative values and decimal places in your choices (ie. 2, -2, 1.5).
-
-You could set your home time zone to GMT and make the default offset match your home.  I haven't really experimented with this way so your mileage may vary,
-especially if you live in an area that uses Daylight Savings Time.
+This clock has a rotation sensor. It seems to be just a mercury-like bulb that detects if the clock has been flipped. This is functional to flip the clock but you could also use it for other things (ie)
 
 ## Integration with Home Assistant
 
@@ -67,7 +60,7 @@ This example will send a message that will display for 3 seconds before revertin
 
 ## Tasmota Notes
 
-Some people would prefer to use Tasmota.  I did use Tasmota at first but I found it a bit lacking.  I made some notes that I'll include here:
+Some people would prefer to use Tasmota.  I did use Tasmota at first but I found it a bit lacking, namely that doesn't seem possible to replace the default font.  I made some notes that I'll include here:
 
 First, using [`Gitpod`](https://gitpod.io/#https://github.com/arendst/Tasmota/tree/master), add these lines to user_config_override.h:
 ````
