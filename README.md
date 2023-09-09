@@ -82,10 +82,17 @@ Then run:
 platformio run -e tasmota-display
 ````
 
-The template:
-````
-{"NAME":"Generic","GPIO":[160,0,544,0,608,640,0,0,0,6944,6912,6976,161,0],"FLAG":0,"BASE":18}
-````
+The GPIOs:
+| Function | PIN  |
+| -------- | ---- |
+| SCL  | GPIO4  |
+| SDA  | GPIO5  |
+| CLK  | GPIO14 |
+| MOSI | GPIO13 |
+| CS   | GPIO15 |
+| LEDLINK | GPIO2 |
+| SWITCH 1 (Download button) | GPIO0 |
+| SWITCH 2 (Rotation Sensor) | GPIO16 |
 
 Some useful console commands (it'll at least get you a functional display, though you may need to reset the power first):
 ````
