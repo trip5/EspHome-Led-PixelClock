@@ -50,9 +50,10 @@ time:
     on_time_sync:
       then:
         ds1307.write_time:
-  - platform: ds1307 # even though it's a ds3231 / note - do NOT add timezone
+  - platform: ds1307 # even though it's a ds3231
     id: my_time
     update_interval: never
+    timezone: "$time_zone"
 
 api:
   services:
