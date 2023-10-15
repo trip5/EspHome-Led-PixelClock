@@ -12,6 +12,8 @@ For now, the file [`EHLPClock.yaml`](EHLPClock.yaml) contains the full YAML code
 
 ## Dot Matrix Clock
 
+![image](./images/MatrixClock-mine.jpg)
+
 ![image](./images/DotMatrixClock.jpg)
 
 This is the link on Aliexpress I have personally used but I am sure there are others:
@@ -60,7 +62,7 @@ This example will send a message that will display for 3 seconds before revertin
 
 ## Tasmota Notes
 
-Some people would prefer to use Tasmota.  I did use Tasmota at first but I found it a bit lacking, namely that doesn't seem possible to replace the default font.  I made some notes that I'll include here:
+Some people would prefer to use Tasmota.  I did use Tasmota at first but I found it a bit lacking, namely that it doesn't seem possible to replace the default font.  I made some notes that I'll include here:
 
 First, using [`Gitpod`](https://gitpod.io/#https://github.com/arendst/Tasmota/tree/master), add these lines to user_config_override.h:
 ````
