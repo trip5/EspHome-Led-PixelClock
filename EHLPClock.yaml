@@ -11,13 +11,19 @@ substitutions:
   status_led_pin: GPIO2
   download_button_pin: GPIO0
   rotation_pin: GPIO16
+  # time and date formats: https://esphome.io/components/time/?highlight=strftime#strftime and https://strftime.org/
+  # time_format: "%H:%M" (13:25) / "%H:%M:%S" (13:25:59) / "%I:%M%p" (01:25PM) / "%l:%M%p" (1:25PM)
+  time_format12: "%l:%M%p"
+  time_format24: "%H:%M:%S"
+  # date_format: "%m.%d" (02.28) / "%y.%m.%d" (23.02.28) / "%b %d" (Feb 08) / "%a %d" (Tue 08)
+  date_format: "%b %d"
 
 esphome:
   name: $name
   comment: "EHLPClock from Trip5"
   project:
     name: "Trip5.EspHomeLedPixelClock"
-    version: "2023.09.10"
+    version: "2023.10.22"
   on_boot:
     then:
       - ds1307.read_time:
@@ -32,14 +38,14 @@ wifi:
 
 font:
 # Get the fonts from https://github.com/trip5/MatrixClockFonts (but you can use others too!)
-  - file: fonts/MatrixClock-Chunky8X.bdf
+  - file: fonts/MatrixChunky8X.bdf
     id: default_font
     glyphs:  |
       ! "#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz°
-  - file: fonts/MatrixClock-Light8X.bdf
+  - file: fonts/MatrixLight8X.bdf
     id: message_font
     glyphs:  |
-      ! "#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz°{|}~¡¢£¤¥¦§¨©ª«¬®¯±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ
+      ! "#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz°
 
 time:
   - platform: sntp
@@ -212,11 +218,27 @@ display:
             id(message_clock_time_count) += 1;
             id(message_alive_time_count) += 1;
           }
-          if (id(hour12_mode) == 1) {
-            it.strftime((32 / 2), (8 / 2), id(default_font), TextAlign::CENTER, "%l:%M%p", id(my_time).now());
+          // check if the date to be displayed
+          if ((id(date_display_time_count) >= (id(date_display_interval))) && (id(date_display_mode) != 0)) {
+            id(date_display_count) += 1;
+            // display date
+            it.strftime((32 / 2), (8 / 2), id(default_font), TextAlign::CENTER, "$date_format", id(my_time).now());
+            if (id(date_display_count) >= id(date_display_time)) {
+              id(date_display_time_count) = 0;
+            }
           } else {
-            it.strftime((32 / 2), (8 / 2), id(default_font), TextAlign::CENTER, "%H:%M", id(my_time).now());
+            id(date_display_count) = 0;
+            if (id(date_display_mode) != 0) {
+              id(date_display_time_count) += 1;
+            }
+            // display time
+            if (id(hour12_mode) == 1) {
+              it.strftime((32 / 2), (8 / 2), id(default_font), TextAlign::CENTER, "$time_format12", id(my_time).now());
+            } else {
+              it.strftime((32 / 2), (8 / 2), id(default_font), TextAlign::CENTER, "$time_format24", id(my_time).now());
+            }
           }
+
         }
       } else {
         it.print((32 / 2), (8 / 2), id(default_font), TextAlign::CENTER, "$waiting");
@@ -268,6 +290,26 @@ globals:
      type: int
      restore_value: false
      initial_value: '0'
+   - id: date_display_mode
+     type: bool
+     restore_value: true
+     initial_value: 'false'
+   - id: date_display_interval
+     type: int
+     restore_value: true
+     initial_value: '12'
+   - id: date_display_time
+     type: int
+     restore_value: true
+     initial_value: '3'
+   - id: date_display_time_count
+     type: int
+     restore_value: false
+     initial_value: '0'
+   - id: date_display_count
+     type: int
+     restore_value: false
+     initial_value: '0'
 
 button:
   - platform: restart
@@ -301,6 +343,22 @@ switch:
     turn_off_action:
         lambda: |-
           id(hour12_mode) = false;
+  - platform: template
+    name: "$friendly_name Date Display Mode"
+    id: date_mode_select
+    restore_mode: RESTORE_DEFAULT_OFF
+    lambda: |-
+      if (id(date_display_mode)) {
+        return true;
+      } else {
+        return false;
+      }
+    turn_on_action:
+        lambda: |-
+          id(date_display_mode) = true;
+    turn_off_action:
+        lambda: |-
+          id(date_display_mode) = false;
 
 number:
   - platform: template
@@ -317,3 +375,33 @@ number:
         lambda: |-
           id(brightness_level) = x;
           ESP_LOGD("main", "Brightness: %d", id(brightness_level));
+  - platform: template
+    name: "$friendly_name Date Display Interval"
+    id: date_display_interval_select
+    restore_value: true
+    optimistic: true
+    step: 1
+    min_value: 1
+    max_value: 60
+    mode: box
+    unit_of_measurement: seconds
+    set_action:
+      then:
+        lambda: |-
+          id(date_display_interval) = x;
+          ESP_LOGD("main", "Date Display Interval: %d", id(date_display_interval));
+  - platform: template
+    name: "$friendly_name Date Display Time"
+    id: date_display_time_select
+    restore_value: true
+    optimistic: true
+    step: 1
+    min_value: 1
+    max_value: 60
+    mode: box
+    unit_of_measurement: seconds
+    set_action:
+      then:
+        lambda: |-
+          id(date_display_time) = x;
+          ESP_LOGD("main", "Date Display Time: %d", id(date_display_time));
