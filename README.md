@@ -10,12 +10,14 @@ For now, the file [`EHLPClock.yaml`](EHLPClock.yaml) contains the full YAML code
 
 ## Dot Matrix Clock
 
-![image](./images/MatrixClock-mine.jpg)
-
 ![image](./images/DotMatrixClock.jpg)
 
 This is the link on Aliexpress I have personally used but I am sure there are others:
 https://www.aliexpress.com/item/1005005704533418.html
+
+Here is my clock, using the Matrix Font and a bit of paper sandwiched between the LED display and the acrylic.
+
+![image](./images/MatrixClock-mine.jpg)
 
 ### Flashing
 
