@@ -52,6 +52,11 @@ Of course, this is ESPHome, so you can change the button functions by editing th
 
 This clock has a rotation sensor. It seems to be just a mercury-like bulb that detects if the clock has been flipped. This is functional to flip the clock but you could also use it for other things if you wish.
 
+### Date Display
+
+This clock can display the date at configurable intervals.  The display interval checks how long the clock was displayed for and then displays the date for the specified time
+(in seconds).  Keep in mind that displaying the message from the Home Assistant integration will not interrupt this count, so I recommend choosing sane and even numbers.
+
 ## Integration with Home Assistant
 
 ![image](./images/EHLPC_Home_Assistant_message.png)
