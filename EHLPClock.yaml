@@ -35,6 +35,9 @@ esp8266:
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
+  ap:
+    ssid: $name
+    password: !secret ap_password
 
 font:
 # Get the fonts from https://github.com/trip5/MatrixClockFonts (but you can use others too!)
