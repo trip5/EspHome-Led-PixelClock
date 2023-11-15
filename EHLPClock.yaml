@@ -1,8 +1,18 @@
 substitutions:
   name: led-pixelclock-blue
   friendly_name: Led-PixelClock-Blue
+  comment: "EHLPClock from Trip5"
+  project_version: "2023.11.16"
+  project_name: Trip5.EspHomeLedPixelClock
   waiting: "EHLPClock . . . " # shows when waiting for time
-  time_zone: "Asia/Seoul" # Check https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+  # Time zone can be Olsen type ("Asia/Seoul") # Check https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+  # Or it can be POSIX format: ("PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00") - most can be viewed here: https://gist.github.com/alwynallan/24d96091655391107939
+  # Read more about how to customize a POSIX format here: https://developer.ibm.com/articles/au-aix-posix/
+  time_zone: "KST-9"
+  # At some point, I figured out how to use alternate time zones... it's a bit weird but useful (and sticks on reboot) - I've commented out the relevant lines for now (check globals & switch)
+  # If using Alternate Time Zones, you MUST use POSIX format for both time Zones not Olsen... you will also need the next two substitution lines:
+    # time_zone_alt: "AST4ADT,M3.2.0,M11.1.0"
+  # time_zone_alt_name: "AST"
   scl_pin: GPIO4
   sda_pin: GPIO5
   clk_pin: GPIO14
@@ -16,17 +26,23 @@ substitutions:
   time_format12: "%l:%M%p"
   time_format24: "%H:%M:%S"
   # date_format: "%m.%d" (02.28) / "%y.%m.%d" (23.02.28) / "%b %d" (Feb 08) / "%a %d" (Tue 08)
-  date_format: "%b %d"
+  date_format: "%a" # Mon
+  # date_formatB, if used, will split the time of the date display with the above format
+  date_formatB: "%b %d" # Jan 01
+  date_formatB_on: "true" # false if unused
 
 esphome:
   name: $name
-  comment: "EHLPClock from Trip5"
+  comment: "$comment"
   project:
-    name: "Trip5.EspHomeLedPixelClock"
-    version: "2023.10.22"
+    name: "$project_name"
+    version: "$project_version"
   on_boot:
     then:
       - ds1307.read_time:
+      - globals.set:
+          id: date_formatB_on
+          value: !lambda 'return "$date_formatB_on";'
 
 esp8266:
   board: esp12e
@@ -35,9 +51,32 @@ esp8266:
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
+  reboot_timeout: 0s # reboot if no wifi (must be disabled for wifi to be turned off)
+  enable_on_boot: True
+  id: wifi_id
   ap:
     ssid: $name
     password: !secret ap_password
+    ap_timeout: 10s # this has to be short, especially if using Stop Seek Wifi
+  on_connect:
+    - logger.log: "Wifi connected"
+    - light.turn_off: led1
+    - delay: 1s
+    - button.press: display_ip
+    - lambda: |-
+        id(wifi_stop_seek_time_count) = 0;
+        id(my_time)->update();
+  on_disconnect:
+    - if:
+        condition:
+          lambda: |-
+            return (id(wifi_stop_seek) ==  1);
+        then:
+          - logger.log: "Wifi disconnected - will be disabled soon (stop seek is on)..."
+        else:
+          - logger.log: "Wifi disconnected"
+    - delay: 1s
+    - button.press: display_ip
 
 font:
 # Get the fonts from https://github.com/trip5/MatrixClockFonts (but you can use others too!)
@@ -52,19 +91,21 @@ font:
 
 time:
   - platform: sntp
+    id: my_time
 # If you would rather use Home Assistant as a time source, delete the above line and uncomment the next line (but sntp means you can take your clock anywhere)
 #  - platform: homeassistant
     timezone: "$time_zone"
-    update_interval: 8h
+    update_interval: 24h # This seems like the longest safe amount of time - actual configured update interval happens under Display
     on_time_sync:
       then:
-        ds1307.write_time:
+        - ds1307.write_time:
   - platform: ds1307 # even though it's a ds3231
-    id: my_time
+    id: my_time_ds
     update_interval: never
     timezone: "$time_zone"
 
 api:
+  reboot_timeout: 0s # Must be disabled to allow the Wifi enable/disable to function
   services:
 # This next section creates the Home Assistant services to allow messages to be displayed
     - service: message
@@ -116,21 +157,38 @@ captive_portal:
 
 text_sensor:
   - platform: version
-    name: "ESPHome Version"
+    name: "$friendly_name ESPHome Version"
     hide_timestamp: true
-    internal: true
+    entity_category: diagnostic
   - platform: wifi_info
     ip_address:
       id: wifi_ip
       name: "$friendly_name IP Address"
+      entity_category: diagnostic
     ssid:
       id: wifi_ssid
       name: "$friendly_name SSID"
+      entity_category: diagnostic
+  - platform: template
+    name: "$friendly_name $project_name Version"
+    lambda: |-
+      return {"$project_version"};
+    entity_category: diagnostic
+    update_interval: never
 
-status_led:
-  pin:
-    number: $status_led_pin
-    inverted: true
+output:
+  - platform: esp8266_pwm
+    id: statusled
+    pin:
+      number: $status_led_pin
+      inverted: true
+
+light:
+  - platform: monochromatic
+    id: led1
+    name: "LED"
+    output: statusled
+    internal: true
 
 preferences:
   flash_write_interval: 15s # 0 does immediate write to memory with no mem buffer (not recommended) (only saves when persistent variables have changed)
@@ -145,8 +203,7 @@ spi:
   clk_pin: $clk_pin
   mosi_pin: $mosi_pin
 
-# Check this section carefully!
-# Also, some info how to handle multi_click options: https://community.home-assistant.io/t/esphome-button-held-double-press/136083/10
+# Some info how to handle multi_click options: https://community.home-assistant.io/t/esphome-button-held-double-press/136083/10
 binary_sensor:
   - platform: status
     name: "$friendly_name Status"
@@ -159,16 +216,12 @@ binary_sensor:
       - delayed_on: 10ms
       - delayed_off: 10ms
     on_multi_click:
-      #Click will display the last message for 10 seconds
+      #Click will toggle Date display mode
       - timing:
           - ON for at most 0.5s
           - OFF for at least 0.5s
         then:
-          lambda: |-
-            if (id(message) != "") {
-              id(message_alive_time) = 10;
-              id(message_display_time) = 10;
-            }
+          - switch.toggle: date_mode_select
       #Double-Click will toggle 12-hour mode
       - timing:
           - ON for at most 1s
@@ -177,11 +230,23 @@ binary_sensor:
           - OFF for at least 0.1s
         then:
           - switch.toggle: hour12_select
-      #Hold will show the IP Address
+      #Click once, then Hold will toggle TZ Offset
+      - timing:
+          - ON for at most 1s
+          - OFF for at most 0.5s
+          - ON for at least 1s
+        then:
+          - switch.toggle: tzoffset_on_select
+      #Hold 1s will show the IP (or other wifi status)
       - timing:
           - ON for at least 1s
         then:
           - button.press: display_ip
+      #Hold 5s will toggle the wifi timeout
+      - timing:
+          - ON for at least 5s
+        then:
+          - switch.toggle: wifi_stop_seek_select
   - platform: gpio
     pin: 
       number: $rotation_pin
@@ -221,11 +286,27 @@ display:
             id(message_clock_time_count) += 1;
             id(message_alive_time_count) += 1;
           }
-          // check if the date to be displayed
+          // apply offset if needed https://community.home-assistant.io/t/multiple-time-zones/435315/12
+          int offset = 0;
+          if (id(tzoffset_on) != 0) {
+            offset = (int)(60 * 60 * (id(tzoffset)));
+          }
+          std::time_t tz1time = (id(my_time).now().timestamp + offset);
+          std::tm *tz1time_astm = localtime(&tz1time);
+
+          // check if the date should be displayed
           if ((id(date_display_time_count) >= (id(date_display_interval))) && (id(date_display_mode) != 0)) {
             id(date_display_count) += 1;
-            // display date
-            it.strftime((32 / 2), (8 / 2), id(default_font), TextAlign::CENTER, "$date_format", id(my_time).now());
+            // if date_formatB is true, display it for 50% of the time first, after the 1st...
+            if ((id(date_formatB_on) == 1) && (id(date_display_count) > (id(date_display_time) / 2))) {
+              char displaydtB[20];
+              strftime(displaydtB, 20, "$date_formatB", tz1time_astm);
+              it.printf((32 / 2), (8 / 2), id(default_font), TextAlign::CENTER, "%s", displaydtB);
+            } else {
+              char displaydtA[20];
+              strftime(displaydtA, 20, "$date_format", tz1time_astm);
+              it.printf((32 / 2), (8 / 2), id(default_font), TextAlign::CENTER, "%s", displaydtA);
+            }
             if (id(date_display_count) >= id(date_display_time)) {
               id(date_display_time_count) = 0;
             }
@@ -236,12 +317,15 @@ display:
             }
             // display time
             if (id(hour12_mode) == 1) {
-              it.strftime((32 / 2), (8 / 2), id(default_font), TextAlign::CENTER, "$time_format12", id(my_time).now());
+              char displaytm12[20];
+              strftime(displaytm12, 20, "$time_format12", tz1time_astm);
+              it.printf((32 / 2), (8 / 2), id(default_font), TextAlign::CENTER, "%s", displaytm12);
             } else {
-              it.strftime((32 / 2), (8 / 2), id(default_font), TextAlign::CENTER, "$time_format24", id(my_time).now());
+              char displaytm24[20];
+              strftime(displaytm24, 20, "$time_format24", tz1time_astm);
+              it.printf((32 / 2), (8 / 2), id(default_font), TextAlign::CENTER, "%s", displaytm24);
             }
           }
-
         }
       } else {
         it.print((32 / 2), (8 / 2), id(default_font), TextAlign::CENTER, "$waiting");
@@ -256,6 +340,49 @@ display:
         id(matrix)->set_chip_orientation(0);
       }
 
+interval:
+  - interval: 1min # check if the time should be synced, and if so, do it
+    then:
+      lambda: |-
+        id(sync_time_count) += 1;
+        if (id(sync_time_count) >= (id(sync_time) * 60)) {
+          id(sync_time_count) = 0;
+          if (id(wifi_id).is_connected()) {
+            id(my_time)->update();
+          }
+        }
+  - interval: 1s # check if the wifi should be turned off, and if so, do it (or turn on if stop seek has been disabled) and blink led while seeking wifi
+    then:
+      - lambda: |-
+          if (id(wifi_stop_seek) == 1 && !id(wifi_id).is_connected() && !id(wifi_id).is_disabled()){
+            id(wifi_stop_seek_time_count) += 1;
+            if (id(wifi_stop_seek_time_count) >= id(wifi_stop_seek_time)) {
+              id(wifi_stop_seek_time_count) = 0;
+              id(led1).turn_off();
+              id(wifi_id)->disable();
+              id(display_ip).press();
+            }
+          } else {
+            if (id(wifi_stop_seek) == 0 && id(wifi_id).is_disabled()) {
+              id(wifi_stop_seek_time_count) = 0;
+              id(wifi_id)->enable();
+              id(display_ip).press();
+            }
+          }
+          static int blinkled = 0;
+          if (!id(wifi_id).is_connected() && !id(wifi_id).is_disabled()) {
+            if (id(wifi_stop_seek) == 0) {
+              auto call = id(led1).toggle();
+              call.perform();
+              //id(led1).toggle();
+            } else {
+              if (++blinkled & 1) {
+                auto call = id(led1).toggle();
+                call.perform();
+              }
+            }
+          }
+
 globals:
    - id: brightness_level
      type: int
@@ -265,6 +392,23 @@ globals:
      type: bool
      restore_value: true
      initial_value: 'false'
+   - id: date_formatB_on
+     type: bool
+     restore_value: false
+     initial_value: 'false'
+   - id: tzoffset
+     type: float
+     restore_value: true
+     initial_value: '0'
+   - id: tzoffset_on
+     type: bool
+     restore_value: true
+     initial_value: 'false'
+# Alt Time Zone variable
+#   - id: tz_alt
+#     type: bool
+#     restore_value: true
+#     initial_value: 'false'
    - id: message
      type: std::string
      restore_value: false
@@ -313,6 +457,26 @@ globals:
      type: int
      restore_value: false
      initial_value: '0'
+   - id: sync_time
+     type: int
+     restore_value: true
+     initial_value: '8'
+   - id: sync_time_count
+     type: int
+     restore_value: false
+     initial_value: '0'
+   - id: wifi_stop_seek
+     type: bool
+     restore_value: true
+     initial_value: 'false'
+   - id: wifi_stop_seek_time
+     type: int
+     restore_value: true
+     initial_value: '180'
+   - id: wifi_stop_seek_time_count
+     type: int
+     restore_value: false
+     initial_value: '0'
 
 button:
   - platform: restart
@@ -323,11 +487,26 @@ button:
     name: "Display IP Address"
     internal: true
     on_press:
-      - lambda: |-
-          id(message_alive_time) = 10;
-          id(message_display_time) = 10;
-          id(message_clock_time) = 0;
-          id(message) = (" IP : " + id(wifi_ip).state + " . . . . . ");
+      - if:
+          condition:
+            not:
+              wifi.connected:
+          then:
+            - lambda: |-
+                if (id(wifi_id).is_disabled()) {
+                  id(message) = ("Wifi Off");
+                } else {
+                  id(message) = ("No Wifi");
+                }
+                id(message_alive_time) = 3;
+                id(message_display_time) = 3;
+                id(message_clock_time) = 0;
+          else:
+            - lambda: |-
+                id(message) = (" IP : " + id(wifi_ip).state + " . . . . ");
+                id(message_alive_time) = 9;
+                id(message_display_time) = 9;
+                id(message_clock_time) = 0;
 
 switch:
   - platform: template
@@ -347,6 +526,45 @@ switch:
         lambda: |-
           id(hour12_mode) = false;
   - platform: template
+    name: "$friendly_name Time Zone Offset On"
+    id: tzoffset_on_select
+    restore_mode: RESTORE_DEFAULT_OFF
+    lambda: |-
+      if (id(tzoffset_on)) {
+        return true;
+      } else {
+        return false;
+      }
+    turn_on_action:
+        lambda: |-
+          id(tzoffset_on) = true;
+    turn_off_action:
+        lambda: |-
+          id(tzoffset_on) = false;
+# Alt Time Zone selector / activator
+#  - platform: template
+#    name: "$friendly_name Alternate Time ($time_zone_alt_name)"
+#    id: tz_alt_select
+#    restore_mode: RESTORE_DEFAULT_OFF
+#    lambda: |-
+#      if (id(tz_alt)) {
+#        return true;
+#      } else {
+#        return false;
+#      }
+#    turn_on_action:
+#        lambda: |-
+#          id(tz_alt) = true;
+#          id(my_time)->set_timezone("$time_zone_alt");
+#          id(my_time_ds)->set_timezone("$time_zone_alt");
+#          id(my_time)->call_setup();
+#    turn_off_action:
+#        lambda: |-
+#          id(tz_alt) = false;
+#          id(my_time)->set_timezone("$time_zone");
+#          id(my_time_ds)->set_timezone("$time_zone");
+#          id(my_time)->call_setup();
+  - platform: template
     name: "$friendly_name Date Display Mode"
     id: date_mode_select
     restore_mode: RESTORE_DEFAULT_OFF
@@ -357,11 +575,45 @@ switch:
         return false;
       }
     turn_on_action:
-        lambda: |-
-          id(date_display_mode) = true;
+        - lambda: |-
+            id(date_display_mode) = true;
+            id(message) = ("Date on");
+            id(message_alive_time) = 1;
+            id(message_display_time) = 1;
+            id(message_clock_time) = 0;
     turn_off_action:
-        lambda: |-
-          id(date_display_mode) = false;
+        - lambda: |-
+            id(date_display_mode) = false;
+            id(message) = ("Date off");
+            id(message_alive_time) = 1;
+            id(message_display_time) = 1;
+            id(message_clock_time) = 0;
+  - platform: template
+    name: "$friendly_name Wifi Stop Seek"
+    id: wifi_stop_seek_select
+    restore_mode: RESTORE_DEFAULT_OFF
+    lambda: |-
+      if (id(wifi_stop_seek)) {
+        return true;
+      } else {
+        return false;
+      }
+    turn_on_action:
+        - delay: 1s
+        - lambda: |-
+            id(wifi_stop_seek) = true;
+            id(message) = ("StopSeek");
+            id(message_alive_time) = 1;
+            id(message_display_time) = 1;
+            id(message_clock_time) = 0;
+    turn_off_action:
+        - delay: 1s
+        - lambda: |-
+            id(wifi_stop_seek) = false;
+            id(message) = ("Seek...");
+            id(message_alive_time) = 1;
+            id(message_display_time) = 1;
+            id(message_clock_time) = 0;
 
 number:
   - platform: template
@@ -408,3 +660,47 @@ number:
         lambda: |-
           id(date_display_time) = x;
           ESP_LOGD("main", "Date Display Time: %d", id(date_display_time));
+  - platform: template
+    name: "$friendly_name Time Zone Offset"
+    id: tzoffset_select
+    restore_value: true
+    optimistic: true
+    step: 0.25
+    min_value: -26
+    max_value: 26
+    initial_value: 0
+    mode: box
+    unit_of_measurement: hours
+    set_action:
+      then:
+        lambda: |-
+          id(tzoffset) = x;
+          ESP_LOGD("main", "Time Zone Offset: %.2f", id(tzoffset));
+  - platform: template
+    name: "$friendly_name Time Sync Interval (hours)"
+    id: sync_time_select
+    restore_value: true
+    optimistic: true
+    step: 1
+    min_value: 1
+    max_value: 24
+    mode: box
+    set_action:
+      then:
+        lambda: |-
+          id(sync_time) = x;
+          ESP_LOGD("main", "Time Sync Interval (hours): %d", id(sync_time));
+  - platform: template
+    name: "$friendly_name Wifi Stop Seek Time (seconds)"
+    id: wifi_stop_seek_time_select
+    restore_value: true
+    optimistic: true
+    step: 5
+    min_value: 60
+    max_value: 300
+    mode: box
+    set_action:
+      then:
+        lambda: |-
+          id(sync_time) = x;
+          ESP_LOGD("main", "Wifi Stop Seek Time (seconds): %d", id(wifi_stop_seek_time));
