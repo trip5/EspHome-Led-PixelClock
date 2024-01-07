@@ -2,7 +2,7 @@ substitutions:
   name: led-pixelclock-blue
   friendly_name: Led-PixelClock-Blue
   comment: "EHLPClock from Trip5"
-  project_version: "2023.11.16"
+  project_version: "2024.01.07"
   project_name: Trip5.EspHomeLedPixelClock
   waiting: "EHLPClock . . . " # shows when waiting for time
   # Time zone can be Olsen type ("Asia/Seoul") # Check https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
@@ -11,7 +11,7 @@ substitutions:
   time_zone: "KST-9"
   # At some point, I figured out how to use alternate time zones... it's a bit weird but useful (and sticks on reboot) - I've commented out the relevant lines for now (check globals & switch)
   # If using Alternate Time Zones, you MUST use POSIX format for both time Zones not Olsen... you will also need the next two substitution lines:
-    # time_zone_alt: "AST4ADT,M3.2.0,M11.1.0"
+  # time_zone_alt: "AST4ADT,M3.2.0,M11.1.0"
   # time_zone_alt_name: "AST"
   scl_pin: GPIO4
   sda_pin: GPIO5
@@ -26,10 +26,11 @@ substitutions:
   time_format12: "%l:%M%p"
   time_format24: "%H:%M:%S"
   # date_format: "%m.%d" (02.28) / "%y.%m.%d" (23.02.28) / "%b %d" (Feb 08) / "%a %d" (Tue 08)
-  date_format: "%a" # Mon
-  # date_formatB, if used, will split the time of the date display with the above format
-  date_formatB: "%b %d" # Jan 01
-  date_formatB_on: "true" # false if unused
+  date_format: "%b %d" # Jan 01
+  # date_formatA, if turned on, will split the time of the date display with the main date (and occur before):
+  date_formatA: "%a" # Mon
+  # Special note that ESPHome can't seem to use any locale for time other than English. In the text_sensors section, you can find filters that allow substitutions.
+  # Please be sure to add those needed characters to the glyphs as well, or those special characters will not be displayed!
 
 esphome:
   name: $name
@@ -41,9 +42,6 @@ esphome:
   on_boot:
     then:
       - ds1307.read_time:
-      - globals.set:
-          id: date_formatB_on
-          value: !lambda 'return "$date_formatB_on";'
 
 esp8266:
   board: esp12e
@@ -81,12 +79,15 @@ wifi:
 
 font:
 # Get the fonts from https://github.com/trip5/MatrixClockFonts (but you can use others too!)
-  - file: fonts/MatrixChunky8X.bdf
+  - file: fonts/MatrixChunky8X.ttf
     id: default_font
+    size: 8
     glyphs:  |
-      ! "#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz°
-  - file: fonts/MatrixLight8X.bdf
+      ! "#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz°오후전일월화수목금토요
+# If your clock is crashing, you can delete this section, go down to the display section, find message_font (once) and change it to default_font
+  - file: fonts/MatrixChunky8X.ttf
     id: message_font
+    size: 8
     glyphs:  |
       ! "#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz°
 
@@ -152,7 +153,7 @@ ota:
 web_server:
   port: 80
   ota: true
-  include_internal: true
+  # include_internal: true # probably not necessary, as it will expose more than needed to the Web UI
 
 captive_portal:
 
@@ -175,7 +176,64 @@ text_sensor:
     lambda: |-
       return {"$project_version"};
     entity_category: diagnostic
+    update_interval: 1h
+  - platform: template
+    name: "$friendly_name Time Zone"
+    lambda: |-
+      return {"$time_zone"};
+    entity_category: diagnostic
+    update_interval: 1h
+  - platform: template
+    id: time_text
+    name: "$friendly_name Replacement Time Text"
+    entity_category: diagnostic
     update_interval: never
+    internal: true
+    filters:
+      - append: ""
+      - prepend: ""
+      - substitute:
+        - "AM -> 오전"
+        - "PM -> 오후"
+  - platform: template
+    id: date_text
+    name: "$friendly_name Replacement Date Text"
+    entity_category: diagnostic
+    update_interval: never
+    internal: true
+    filters:
+      - append: "일"
+      - prepend: ""
+      - substitute:
+        - "Jan -> 1월"
+        - "Feb -> 2월"
+        - "Mar -> 3월"
+        - "Apr -> 4월"
+        - "May -> 5월"
+        - "Jun -> 6월"
+        - "Jul -> 7월"
+        - "Aug -> 8월"
+        - "Sep -> 9월"
+        - "Oct -> 10월"
+        - "Nov -> 11월"
+        - "Dec -> 12월"
+  - platform: template
+    id: dateA_text
+    name: "$friendly_name Replacement Date A Text"
+    entity_category: diagnostic
+    update_interval: never
+    internal: true
+    filters:
+      - append: "요일"
+      - prepend: ""
+      - substitute:
+        - "Sun -> 일"
+        - "Mon -> 월"
+        - "Tue -> 화"
+        - "Wed -> 수"
+        - "Thu -> 목"
+        - "Fri -> 금"
+        - "Sat -> 토"
 
 output:
   - platform: esp8266_pwm
@@ -187,7 +245,7 @@ output:
 light:
   - platform: monochromatic
     id: led1
-    name: "LED"
+    name: "$friendly_name Status LED"
     output: statusled
     internal: true
 
@@ -256,7 +314,6 @@ binary_sensor:
     id: rotation_mode
 
 display:
-# https://community.home-assistant.io/t/reusable-function-for-lambdas/296435/10
   - platform: max7219digit
     id: matrix
     cs_pin: $cs_pin
@@ -272,7 +329,7 @@ display:
           id(message_display_time_count) += 1;
           id(message_alive_time_count) += 1;
           auto message_text = id(message);
-          it.print(0, 0, id(message_font), message_text.c_str());
+          it.print(0, 0, id(message_font), message_text.c_str());          // change message_font to default_font if you need memory
           if (id(message_display_time_count) >= id(message_display_time)) {
             id(message_display_time_count) = 0;
             id(message_clock_time_count) = 0;
@@ -294,39 +351,59 @@ display:
           }
           std::time_t tz1time = (id(my_time).now().timestamp + offset);
           std::tm *tz1time_astm = localtime(&tz1time);
-
+          char display_tmdt[20];
           // check if the date should be displayed
           if ((id(date_display_time_count) >= (id(date_display_interval))) && (id(date_display_mode) != 0)) {
             id(date_display_count) += 1;
-            // if date_formatB is true, display it for 50% of the time first, after the 1st...
-            if ((id(date_formatB_on) == 1) && (id(date_display_count) > (id(date_display_time) / 2))) {
-              char displaydtB[20];
-              strftime(displaydtB, 20, "$date_formatB", tz1time_astm);
-              it.printf((32 / 2), (8 / 2), id(default_font), TextAlign::CENTER, "%s", displaydtB);
+            // if date_formatA is on, display it for 50% of the time first, after the 1st...
+            if ((id(date_A_mode) == 1) && (id(date_display_count) <= (id(date_display_time) / 2))) {
+              strftime(display_tmdt, 20, "$date_formatA", tz1time_astm);
+              // check if Date A text replacement should be made
+              if (id(replace_mode) == 1) {
+                std::string tmdt(display_tmdt);
+                id(dateA_text).publish_state(tmdt);
+                strcpy(display_tmdt, id(dateA_text).state.c_str()); 
+              }
             } else {
-              char displaydtA[20];
-              strftime(displaydtA, 20, "$date_format", tz1time_astm);
-              it.printf((32 / 2), (8 / 2), id(default_font), TextAlign::CENTER, "%s", displaydtA);
+              strftime(display_tmdt, 20, "$date_format", tz1time_astm);
+              // check if Date text replacement should be made
+              if (id(replace_mode) == 1) {
+                std::string tmdt(display_tmdt);
+                id(date_text).publish_state(tmdt);
+                strcpy(display_tmdt, id(date_text).state.c_str()); 
+              }
             }
             if (id(date_display_count) >= id(date_display_time)) {
               id(date_display_time_count) = 0;
+              // check if Replace Interval is active, count or reset, only when date display is finished
+              if (id(replace_interval) > 0) {
+                id(replace_interval_count) += 1;
+                if (id(replace_interval_count) >= id(replace_interval)) {
+                  id(replace_interval_count) = 0;
+                  id(replace_select).toggle();
+                }
+              }
             }
           } else {
             id(date_display_count) = 0;
             if (id(date_display_mode) != 0) {
               id(date_display_time_count) += 1;
             }
-            // display time
+            // choose which time format to display
             if (id(hour12_mode) == 1) {
-              char displaytm12[20];
-              strftime(displaytm12, 20, "$time_format12", tz1time_astm);
-              it.printf((32 / 2), (8 / 2), id(default_font), TextAlign::CENTER, "%s", displaytm12);
+              strftime(display_tmdt, 20, "$time_format12", tz1time_astm);
             } else {
-              char displaytm24[20];
-              strftime(displaytm24, 20, "$time_format24", tz1time_astm);
-              it.printf((32 / 2), (8 / 2), id(default_font), TextAlign::CENTER, "%s", displaytm24);
+              strftime(display_tmdt, 20, "$time_format24", tz1time_astm);
+            }
+            // check if Time text replacement should be made
+            if (id(replace_mode) == 1) {
+              std::string tmdt(display_tmdt);
+              id(time_text).publish_state(tmdt);
+              strcpy(display_tmdt, id(time_text).state.c_str()); 
             }
           }
+          // print the date / time
+          it.printf((32 / 2), (8 / 2), id(default_font), TextAlign::CENTER, "%s", display_tmdt);
         }
       } else {
         it.print((32 / 2), (8 / 2), id(default_font), TextAlign::CENTER, "$waiting");
@@ -340,6 +417,7 @@ display:
         id(matrix)->set_reverse(1);
         id(matrix)->set_chip_orientation(0);
       }
+
 
 interval:
   - interval: 1min # check if the time should be synced, and if so, do it
@@ -383,6 +461,10 @@ interval:
               }
             }
           }
+  - interval: 1s # check if replacement interval should change replacement automatically
+    then:
+      - lambda: |-
+
 
 globals:
    - id: brightness_level
@@ -393,10 +475,22 @@ globals:
      type: bool
      restore_value: true
      initial_value: 'false'
-   - id: date_formatB_on
+   - id: date_A_mode
      type: bool
-     restore_value: false
+     restore_value: true
      initial_value: 'false'
+   - id: replace_mode
+     type: bool
+     restore_value: true
+     initial_value: 'false'
+   - id: replace_interval
+     type: int
+     restore_value: true
+     initial_value: '0'
+   - id: replace_interval_count
+     type: int
+     restore_value: false
+     initial_value: '0'
    - id: tzoffset
      type: float
      restore_value: true
@@ -445,11 +539,11 @@ globals:
    - id: date_display_interval
      type: int
      restore_value: true
-     initial_value: '12'
+     initial_value: '11'
    - id: date_display_time
      type: int
      restore_value: true
-     initial_value: '3'
+     initial_value: '4'
    - id: date_display_time_count
      type: int
      restore_value: false
@@ -481,11 +575,12 @@ globals:
 
 button:
   - platform: restart
-    id: "Restart"
+    id: restart_button
+    name: "$friendly_name Restart"
     internal: true
   - platform: template
     id: display_ip
-    name: "Display IP Address"
+    name: "$friendly_name Display IP Address"
     internal: true
     on_press:
       - if:
@@ -526,6 +621,38 @@ switch:
     turn_off_action:
         lambda: |-
           id(hour12_mode) = false;
+  - platform: template
+    name: "$friendly_name Date A Mode"
+    id: date_A_select
+    restore_mode: RESTORE_DEFAULT_OFF
+    lambda: |-
+      if (id(date_A_mode)) {
+        return true;
+      } else {
+        return false;
+      }
+    turn_on_action:
+        lambda: |-
+          id(date_A_mode) = true;
+    turn_off_action:
+        lambda: |-
+          id(date_A_mode) = false;
+  - platform: template
+    name: "$friendly_name Replacement Mode"
+    id: replace_select
+    restore_mode: RESTORE_DEFAULT_OFF
+    lambda: |-
+      if (id(replace_mode)) {
+        return true;
+      } else {
+        return false;
+      }
+    turn_on_action:
+        lambda: |-
+          id(replace_mode) = true;
+    turn_off_action:
+        lambda: |-
+          id(replace_mode) = false;
   - platform: template
     name: "$friendly_name Time Zone Offset On"
     id: tzoffset_on_select
@@ -645,7 +772,7 @@ number:
       then:
         lambda: |-
           id(date_display_interval) = x;
-          ESP_LOGD("main", "Date Display Interval: %d", id(date_display_interval));
+          ESP_LOGD("main", "Date Display Interval: %d seconds", id(date_display_interval));
   - platform: template
     name: "$friendly_name Date Display Time"
     id: date_display_time_select
@@ -660,7 +787,23 @@ number:
       then:
         lambda: |-
           id(date_display_time) = x;
-          ESP_LOGD("main", "Date Display Time: %d", id(date_display_time));
+          ESP_LOGD("main", "Date Display Time: %d seconds", id(date_display_time));
+  - platform: template
+    name: "$friendly_name Replacement Interval"
+    id: replace_interval_select
+    restore_value: true
+    optimistic: true
+    step: 1
+    min_value: 0
+    max_value: 10
+    initial_value: 0
+    mode: box
+    unit_of_measurement: intervals
+    set_action:
+      then:
+        lambda: |-
+          id(replace_interval) = x;
+          ESP_LOGD("main", "Replacement Interval: %d", id(replace_interval));
   - platform: template
     name: "$friendly_name Time Zone Offset"
     id: tzoffset_select
@@ -676,7 +819,7 @@ number:
       then:
         lambda: |-
           id(tzoffset) = x;
-          ESP_LOGD("main", "Time Zone Offset: %.2f", id(tzoffset));
+          ESP_LOGD("main", "Time Zone Offset: %.2f hours", id(tzoffset));
   - platform: template
     name: "$friendly_name Time Sync Interval (hours)"
     id: sync_time_select
@@ -690,7 +833,7 @@ number:
       then:
         lambda: |-
           id(sync_time) = x;
-          ESP_LOGD("main", "Time Sync Interval (hours): %d", id(sync_time));
+          ESP_LOGD("main", "Time Sync Interval: %d hours", id(sync_time));
   - platform: template
     name: "$friendly_name Wifi Stop Seek Time (seconds)"
     id: wifi_stop_seek_time_select
@@ -704,4 +847,4 @@ number:
       then:
         lambda: |-
           id(sync_time) = x;
-          ESP_LOGD("main", "Wifi Stop Seek Time (seconds): %d", id(wifi_stop_seek_time));
+          ESP_LOGD("main", "Wifi Stop Seek Time: %d seconds", id(wifi_stop_seek_time));

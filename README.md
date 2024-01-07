@@ -67,6 +67,19 @@ The clock can display the date at configurable intervals.
 The display interval checks how long the clock was displayed for and then displays the date for the specified time (in seconds).
 Keep in mind that displaying the message from the Home Assistant integration will not interrupt this count, so I recommend choosing sane and even numbers.
 
+### Time/Date Text Replacement
+
+Since ESPHome can't seem to use any locale for time other than English, I have added an option to substitute the time and date text to something else.
+In the text_sensors section, you can find filters that allow substitutions.
+
+In my YAML, you will see those filters are able to localize time into Korean Hangul.  You can change this to anything you like.
+Be sure that the text to be substituted matches the output of strftime (which will be the default) and be sure to make sure any characters you need are included in the glyphs section,
+or those special characters will not be displayed!
+
+There is also an option called Replacement Interval by which you can make your clock bilingual. It will automatically turn on/off the substitution every number of times the date is displayed.
+
+![image](./images/Korean-demo.gif)
+
 ### Time Sync
 
 Time can be synced to the Internet at configurable intervals between 1 - 24 hours, provided the wifi network is connected.
@@ -121,11 +134,33 @@ If Stop Seek is enabled, the led will pulse on or off every 2 seconds. If connec
 
 This example will send a message that will display for 3 seconds before reverting to the clock for 5 seconds, and repeat until 20 seconds is finished (if it is displaying the message, it will finish that last 3 seconds).
 
+## Crashes?
+
+The memory of the ESP8266 on this clock is extremely limited. With this default yaml, I've already found the device often crashes just when doing an OTA update.
+So I usually flash via USB cable.  To save memory, it is probably a good idea to limit the number of characters you include in the glyphs section to only necessary characters.
+
+If your clock is constantly crashing, you can first try eliminating the message_font (read the notes in the yaml). 
+Then, add this to you sensor section and check how much free memory the ESP has to work with.
+
+````
+sensor:
+  - platform: template
+    name: "ESP Free Heap"
+    lambda: |-
+      int heap = ESP.getFreeHeap();
+      return heap / 1024.0;
+    unit_of_measurement: "kB"
+    update_interval: 5s
+    entity_category: diagnostic
+    icon: mdi:chip
+````
+I've found anything below 8kB available to the heap can cause constant crashes.
 
 ## Update History
 
 | Date       | Release Notes    |
 | ---------- | ---------------- |
+| 2024.01.07 | Time/Date Text Replacement |
 | 2023.11.16 | Wifi Stop Seek, 2nd date screen, time zone offset, alt time zone |
 | 2023.10.22 | Show date on intervals |
 | 2023.09.10 | Basic functionality, HA integration, rotation |
@@ -175,4 +210,6 @@ Trombik's ESPHome Component for the DS1302 RTC (used on the 303): https://github
 About outputting to the MAX7219 Digit Display: https://esphome.io/components/display/max7219digit.html
 
 ESPHome's Display: https://esphome.io/components/display/index.html
+
+The original creator if this clock (unsure if the Chinese Manufacturer appears to be related): https://www.youtube.com/@hacklabs
 
