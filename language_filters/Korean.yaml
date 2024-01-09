@@ -1,0 +1,59 @@
+substitutions:
+# Based on the following time & date formats:
+  time_format12: "%l:%M%p" # 1:25PM
+  date_format: "%b %d" # Jan 01
+  date_formatA: "%a" # Mon
+
+
+text_sensor:
+  - platform: template
+    id: time_text
+    name: "$friendly_name Replacement Time Text"
+    entity_category: diagnostic
+    update_interval: never
+    internal: true
+    filters:
+      - append: ""
+      - prepend: ""
+      - substitute:
+        - "AM -> 오전"
+        - "PM -> 오후"
+  - platform: template
+    id: date_text
+    name: "$friendly_name Replacement Date Text"
+    entity_category: diagnostic
+    update_interval: never
+    internal: true
+    filters:
+      - append: "일"
+      - prepend: ""
+      - substitute:
+        - "Jan -> 1월"
+        - "Feb -> 2월"
+        - "Mar -> 3월"
+        - "Apr -> 4월"
+        - "May -> 5월"
+        - "Jun -> 6월"
+        - "Jul -> 7월"
+        - "Aug -> 8월"
+        - "Sep -> 9월"
+        - "Oct -> 10월"
+        - "Nov -> 11월"
+        - "Dec -> 12월"
+  - platform: template
+    id: dateA_text
+    name: "$friendly_name Replacement Date A Text"
+    entity_category: diagnostic
+    update_interval: never
+    internal: true
+    filters:
+      - append: ""
+      - prepend: ""
+      - substitute:
+        - "Sun -> 일요일"
+        - "Mon -> 월요일"
+        - "Tue -> 화요일"
+        - "Wed -> 수요일"
+        - "Thu -> 목요일"
+        - "Fri -> 금요일"
+        - "Sat -> 토요일"

@@ -1,0 +1,88 @@
+substitutions:
+# Based on the following time & date formats:
+  time_format12: "%l:%M%p" # 1:25PM
+  time_format24: "%H:%M:%S" # 13:25:59
+  date_format: "%b %d" # Jan 01
+  date_formatA: "%a" # Mon
+
+# The plan here is to continue using English formatting for regular mode and switch to French mode on intervals.
+# Read the notes if you plan on doing differently.
+
+text_sensor:
+  - platform: template
+    id: time_text
+    name: "$friendly_name Replacement Time Text"
+    entity_category: diagnostic
+    update_interval: never
+    internal: true
+    # if you don't plan on using 12-hour time as your regular mode, you don't really need any filter at all
+    filters:
+      - lambda: |-
+          // French generally uses 24-hour time, let's just substitute a different format entirely "%Hh %M" (13h 25) - you could also just just use "$time_format24"
+          if (id(hour12_mode) == 1) {
+            int offset = 0;
+            if (id(tzoffset_on) != 0) {
+              offset = (int)(60 * 60 * (id(tzoffset)));
+            }
+            std::time_t tz1time = (id(my_time).now().timestamp + offset);
+            std::tm *tz1time_astm = localtime(&tz1time);
+            char display_tmdt[20];
+            strftime(display_tmdt, 20, "%Hh %M", tz1time_astm);
+            std::string tmdt(display_tmdt);
+            return tmdt;
+          } else {
+            return x;
+          }
+  - platform: template
+    id: date_text
+    name: "$friendly_name Replacement Date Text"
+    entity_category: diagnostic
+    update_interval: never
+    internal: true
+    # note that it would be easier to change date_format above to "%d %b"
+    # But if you want to keep standard English formatting and have just French formatting sometimes, then the lambda is needed:
+    filters:
+      - lambda: |-
+          // We're just going to get the time again, this time calling the appropriate format from strftime
+          if (id(hour12_mode) == 1) {
+            int offset = 0;
+            if (id(tzoffset_on) != 0) {
+              offset = (int)(60 * 60 * (id(tzoffset)));
+            }
+            std::time_t tz1time = (id(my_time).now().timestamp + offset);
+            std::tm *tz1time_astm = localtime(&tz1time);
+            char display_tmdt[20];
+            strftime(display_tmdt, 20, "%d %b", tz1time_astm);
+            std::string tmdt(display_tmdt);
+            return tmdt;
+          } else {
+            return x;
+          }
+      - substitute:
+        - "Jan -> jan"
+        - "Feb -> fév"
+        - "Mar -> mars"
+        - "Apr -> avr"
+        - "May -> mai"
+        - "Jun -> juin"
+        - "Jul -> juil"
+        - "Aug -> août"
+        - "Sep -> sept"
+        - "Oct -> oct"
+        - "Nov -> nov"
+        - "Dec -> déc"
+  - platform: template
+    id: dateA_text
+    name: "$friendly_name Replacement Date A Text"
+    entity_category: diagnostic
+    update_interval: never
+    internal: true
+    filters:
+      - substitute:
+        - "Sun -> dim"
+        - "Mon -> lun"
+        - "Tue -> mar"
+        - "Wed -> mer"
+        - "Thu -> jeu"
+        - "Fri -> ven"
+        - "Sat -> sam"

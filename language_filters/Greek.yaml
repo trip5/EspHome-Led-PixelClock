@@ -1,0 +1,58 @@
+substitutions:
+# Based on the following time & date formats:
+  time_format12: "%l:%M%p" # 1:25PM
+  date_format: "%b %d" # Jan 01
+  date_formatA: "%a" # Mon
+
+text_sensor:
+  - platform: template
+    id: time_text
+    name: "$friendly_name Replacement Time Text"
+    entity_category: diagnostic
+    update_interval: never
+    internal: true
+    filters:
+      - append: ""
+      - prepend: ""
+      - substitute:
+        - "AM -> πμ"
+        - "PM -> μμ"
+  - platform: template
+    id: date_text
+    name: "$friendly_name Replacement Date Text"
+    entity_category: diagnostic
+    update_interval: never
+    internal: true
+    filters:
+      - append: ""
+      - prepend: ""
+      - substitute:
+        - "Jan -> Ιαν"
+        - "Feb -> Φεβ"
+        - "Mar -> Μάρ"
+        - "Apr -> Απρ"
+        - "May -> Μάι"
+        - "Jun -> Ιούν"
+        - "Jul -> Ιούλ"
+        - "Aug -> Αύγ"
+        - "Sep -> Σεπ"
+        - "Oct -> Οκτ"
+        - "Nov -> Νοέ"
+        - "Dec -> Δεκ"
+  - platform: template
+    id: dateA_text
+    name: "$friendly_name Replacement Date A Text"
+    entity_category: diagnostic
+    update_interval: never
+    internal: true
+    filters:
+      - append: ""
+      - prepend: ""
+      - substitute:
+        - "Sun -> Κυρ"
+        - "Mon -> Δευ"
+        - "Tue -> Τρί"
+        - "Wed -> Τετ"
+        - "Thu -> Πέμ"
+        - "Fri -> Παρ"
+        - "Sat -> Σάβ"

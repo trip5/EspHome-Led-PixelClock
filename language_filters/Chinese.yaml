@@ -1,0 +1,59 @@
+substitutions:
+# Based on the following time & date formats (24 hour format should be unaffected):
+  time_format12: "%l:%M%p" # 1:25PM
+  date_format: "%b %d" # Jan 01
+  date_formatA: "%a" # Mon
+
+
+text_sensor:
+  - platform: template
+    id: time_text
+    name: "$friendly_name Replacement Time Text"
+    entity_category: diagnostic
+    update_interval: never
+    internal: true
+    filters:
+      - append: ""
+      - prepend: ""
+      - substitute:
+        - "AM -> 上午"
+        - "PM -> 下午"
+  - platform: template
+    id: date_text
+    name: "$friendly_name Replacement Date Text"
+    entity_category: diagnostic
+    update_interval: never
+    internal: true
+    filters:
+      - append: ""
+      - prepend: ""
+      - substitute:
+        - "Jan -> 一月"
+        - "Feb -> 二月"
+        - "Mar -> 三月"
+        - "Apr -> 四月"
+        - "May -> 五月"
+        - "Jun -> 六月"
+        - "Jul -> 七月"
+        - "Aug -> 八月"
+        - "Sep -> 九月"
+        - "Oct -> 十月"
+        - "Nov -> 十一月"
+        - "Dec -> 十二月"
+  - platform: template
+    id: dateA_text
+    name: "$friendly_name Replacement Date A Text"
+    entity_category: diagnostic
+    update_interval: never
+    internal: true
+    filters:
+      - append: ""
+      - prepend: ""
+      - substitute:
+        - "Sun -> 星期天"
+        - "Mon -> 星期一"
+        - "Tue -> 星期二"
+        - "Wed -> 星期三"
+        - "Thu -> 星期四"
+        - "Fri -> 星期五"
+        - "Sat -> 星期六"

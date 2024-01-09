@@ -80,6 +80,8 @@ There is also an option called Replacement Interval by which you can make your c
 
 ![image](./images/Korean-demo.gif)
 
+Check the language_filters fodler for some examples. French and Korean have some good examples.
+
 ### Time Sync
 
 Time can be synced to the Internet at configurable intervals between 1 - 24 hours, provided the wifi network is connected.

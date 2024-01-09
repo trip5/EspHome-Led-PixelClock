@@ -2,7 +2,7 @@ substitutions:
   name: led-pixelclock-blue
   friendly_name: Led-PixelClock-Blue
   comment: "EHLPClock from Trip5"
-  project_version: "2024.01.07"
+  project_version: "2024.01.08"
   project_name: Trip5.EspHomeLedPixelClock
   waiting: "EHLPClock . . . " # shows when waiting for time
   # Time zone can be Olsen type ("Asia/Seoul") # Check https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
@@ -224,16 +224,16 @@ text_sensor:
     update_interval: never
     internal: true
     filters:
-      - append: "요일"
+      - append: ""
       - prepend: ""
       - substitute:
-        - "Sun -> 일"
-        - "Mon -> 월"
-        - "Tue -> 화"
-        - "Wed -> 수"
-        - "Thu -> 목"
-        - "Fri -> 금"
-        - "Sat -> 토"
+        - "Sun -> 일요일"
+        - "Mon -> 월요일"
+        - "Tue -> 화요일"
+        - "Wed -> 수요일"
+        - "Thu -> 목요일"
+        - "Fri -> 금요일"
+        - "Sat -> 토요일"
 
 output:
   - platform: esp8266_pwm
@@ -578,10 +578,12 @@ button:
     id: restart_button
     name: "$friendly_name Restart"
     internal: true
+    entity_category: diagnostic
   - platform: template
     id: display_ip
     name: "$friendly_name Display IP Address"
     internal: true
+    entity_category: diagnostic
     on_press:
       - if:
           condition:
