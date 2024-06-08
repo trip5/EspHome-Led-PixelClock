@@ -2,7 +2,7 @@ substitutions:
   name: led-pixelclock-blue
   friendly_name: Led-PixelClock-Blue
   comment: "EHLPClock from Trip5"
-  project_version: "2024.01.08"
+  project_version: "2024.06.09"
   project_name: Trip5.EspHomeLedPixelClock
   waiting: "EHLPClock . . . " # shows when waiting for time
   # Time zone can be Olsen type ("Asia/Seoul") # Check https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
@@ -373,22 +373,9 @@ display:
                 strcpy(display_tmdt, id(date_text).state.c_str()); 
               }
             }
-            if (id(date_display_count) >= id(date_display_time)) {
-              id(date_display_time_count) = 0;
-              // check if Replace Interval is active, count or reset, only when date display is finished
-              if (id(replace_interval) > 0) {
-                id(replace_interval_count) += 1;
-                if (id(replace_interval_count) >= id(replace_interval)) {
-                  id(replace_interval_count) = 0;
-                  id(replace_select).toggle();
-                }
-              }
-            }
           } else {
             id(date_display_count) = 0;
-            if (id(date_display_mode) != 0) {
-              id(date_display_time_count) += 1;
-            }
+            id(date_display_time_count) += 1;
             // choose which time format to display
             if (id(hour12_mode) == 1) {
               strftime(display_tmdt, 20, "$time_format12", tz1time_astm);
@@ -404,6 +391,17 @@ display:
           }
           // print the date / time
           it.printf((32 / 2), (8 / 2), id(default_font), TextAlign::CENTER, "%s", display_tmdt);
+          if (((id(date_display_count) >= id(date_display_time)) && (id(date_display_mode) != 0)) || ((id(date_display_time_count) >= id(date_display_interval)) && (id(date_display_mode) == 0))) {
+            id(date_display_time_count) = 0;
+            // check if Replace Interval is active, count or reset, when date display is finished - or after the interval, depending
+            if (id(replace_interval) > 0) {
+              id(replace_interval_count) += 1;
+              if (id(replace_interval_count) >= id(replace_interval)) {
+                id(replace_interval_count) = 0;
+                id(replace_select).toggle();
+              }
+            }
+          }
         }
       } else {
         it.print((32 / 2), (8 / 2), id(default_font), TextAlign::CENTER, "$waiting");
@@ -461,10 +459,6 @@ interval:
               }
             }
           }
-  - interval: 1s # check if replacement interval should change replacement automatically
-    then:
-      - lambda: |-
-
 
 globals:
    - id: brightness_level

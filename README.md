@@ -76,7 +76,7 @@ In my YAML, you will see those filters are able to localize time into Korean Han
 Be sure that the text to be substituted matches the output of strftime (which will be the default) and be sure to make sure any characters you need are included in the glyphs section,
 or those special characters will not be displayed!
 
-There is also an option called Replacement Interval by which you can make your clock bilingual. It will automatically turn on/off the substitution every number of times the date is displayed.
+There is also an option called Replacement Interval by which you can make your clock bilingual. It will automatically turn on/off the substitution every number of times the date is displayed, if the date is displayed.  If the date display is off, the automatic replacement will be made after the time specified by Date Display Time (multiplied by the Date Display Interval).
 
 ![image](./images/Korean-demo.gif)
 
@@ -162,6 +162,7 @@ I've found anything below 8kB available to the heap can cause constant crashes.
 
 | Date       | Release Notes    |
 | ---------- | ---------------- |
+| 2024.06.09 | Replacement Interval fix |
 | 2024.01.07 | Time/Date Text Replacement |
 | 2023.11.16 | Wifi Stop Seek, 2nd date screen, time zone offset, alt time zone |
 | 2023.10.22 | Show date on intervals |
