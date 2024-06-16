@@ -15,9 +15,7 @@ Due to memory constraints on the ESP8266 these clocks use, I've decided to split
 ![image](./images/DotMatrixClock.jpg)
 
 Here are a few links on Aliexpress I have personally used but I am sure there are others:
-https://www.aliexpress.com/item/1005006038630745.html
-https://www.aliexpress.com/item/1005005704533418.html
-https://www.aliexpress.com/item/1005006085818026.html
+https://www.aliexpress.com/item/1005006038630745.html & https://www.aliexpress.com/item/1005005704533418.html & https://www.aliexpress.com/item/1005006085818026.html
 
 Here is my clock, using the Matrix Font and a bit of paper sandwiched between the LED display and the acrylic (the larger screens are a bit bright).
 
