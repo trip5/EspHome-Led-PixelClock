@@ -99,6 +99,8 @@ Check the language_filters folder for some examples.  So far there is:
 [`Greek`](language_filters/Greek.yaml) &
 [`Chinese`](language_filters/Chinese.yaml)
 
+Hopefully this OnlineGDB hosts the [`Glyphs Helper`](https://www.onlinegdb.com/fork/zh1VszNT1) for a long while.
+
 ### Time Sync
 
 Time can be synced to the Internet at configurable intervals between 1 - 24 hours, provided the wifi network is connected.
