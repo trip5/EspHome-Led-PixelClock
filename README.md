@@ -93,7 +93,11 @@ There is also an option called Replacement Interval by which you can make your c
 
 ![image](./images/Korean-demo.gif)
 
-Check the language_filters fodler for some examples. French and Korean have some good examples.
+Check the language_filters folder for some examples.  So far there is:
+[`Korean`](language_filters/Korean.yaml) &
+[`French`](language_filters/French.yaml) &
+[`Greek`](language_filters/Greek.yaml) &
+[`Chinese`](language_filters/Chinese.yaml)
 
 ### Time Sync
 

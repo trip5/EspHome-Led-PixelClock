@@ -72,8 +72,9 @@ wifi:
 font:
   # Get the fonts from https://github.com/trip5/MatrixClockFonts (but you can use others too!)
   # The glyphs must be present or you'll see boxes/blank spaces (no problem unless you edit the Display section below) - don't forget to include a space!
-  # How to get an easy glyphs list? Copy the code from here: https://www.geeksforgeeks.org/cpp-program-to-remove-duplicates-from-a-given-string/
-  # ...to here: https://www.onlinegdb.com/online_c++_compiler
+  # How to get an easy glyphs list? Click here and edit the s = string to your needs: https://www.onlinegdb.com/fork/zh1VszNT1
+  # It's the Java code from here: https://www.geeksforgeeks.org/cpp-program-to-remove-duplicates-from-a-given-string/
+  # ...to here (OnlineGDB's Java handles Unicode a bit better than the C++ compiler): https://www.onlinegdb.com/online_java_compiler
   - file: fonts/MatrixChunky8X.ttf
     id: default_font
     size: 8

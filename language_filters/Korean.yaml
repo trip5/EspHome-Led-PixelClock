@@ -4,6 +4,13 @@ substitutions:
   date_format: "%b %d" # Jan 01
   date_formatA: "%a" # Mon
 
+font:
+  - file: fonts/MatrixChunky8X.ttf
+    id: default_font
+    size: 8
+    glyphs:  |
+      0123456789:.Sun MoTesWdhFriatAPJbpylgOcNvD오후전일월화수목금토요
+    # Above covers Sun Mon Tues Wed Thu Fri Sat AM PM Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec as well as Korean Dates/Times
 
 text_sensor:
   - platform: template
