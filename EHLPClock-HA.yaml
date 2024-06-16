@@ -41,8 +41,16 @@ esphome:
     version: "$project_version"
   min_version: 2023.11.0
   on_boot:
-    then:
-      - ds1307.read_time:
+    - priority: 600
+      then:
+        - ds1307.read_time:
+    - priority: -100
+      then:
+        - wait_until:
+            condition:
+              lambda: |-
+                return (id(my_time).now().is_valid());
+        - ds1307.write_time:
 
 esp8266:
   board: esp12e
@@ -478,14 +486,12 @@ display:
             }
             if (sensor_data_text != "") {
               id(ha_sensor_data_this_time) += 1;
-              if ((id(ha_sensor_data_this_time) >= (id(ha_sensor_data_time))) && (id(ha_sensor_data_all) == true)) {
+              if (id(ha_sensor_data_this_time) >= id(ha_sensor_data_time)) {
                 id(ha_sensor_data_this_time) = 0;
                 id(ha_sensor_data_this) += 1;
-              }
-              if ((id(ha_sensor_data_this_time) > (id(ha_sensor_data_time))) && (id(ha_sensor_data_all) == false)) {
-                id(ha_sensor_data_this_time) = 0;
-                id(ha_sensor_data_this) += 1;
-                id(ha_sensor_data_now) = false ; // we needed to buy 1 second if this mode is on
+                if (id(ha_sensor_data_all) == false) {
+                  id(ha_sensor_data_now) = false ; // we needed to buy 1 second if this mode is on
+                }
               } else {
                 it.print(0, 0, id(message_font), sensor_data_text.c_str());          // change message_font to default_font if you need memory
               }
