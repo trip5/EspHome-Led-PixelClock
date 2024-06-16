@@ -6,7 +6,7 @@ A lot of inspiration is taken from the [`EHMTXv2`](https://github.com/lubeda/Esp
 
 Using this clock requires external font files.  I prefer my own [`MatrixClockFonts`](https://github.com/trip5/MatrixClockFonts) but ESPHome supports a variety of [`fonts`](https://esphome.io/components/display/index.html#fonts), including TTF.
 
-For now, the file [`EHLPClock.yaml`](EHLPClock.yaml) contains the full YAML code, including a lengthy lambda that makes it all work.  At some point, I may turn this into a custom component for ESPHome... but for now, you'll just to have carefully edit the YAML to suit your needs.
+Due to memory constraints on the ESP8266 these clocks use, I've decided to split the functions by how you may choose to use the clock.  Read below for more details.
 
 #### Note: ESPHome must be version 2023.11.0 or higher!
 
@@ -14,10 +14,12 @@ For now, the file [`EHLPClock.yaml`](EHLPClock.yaml) contains the full YAML code
 
 ![image](./images/DotMatrixClock.jpg)
 
-This is the link on Aliexpress I have personally used but I am sure there are others:
+Here are a few links on Aliexpress I have personally used but I am sure there are others:
+https://www.aliexpress.com/item/1005006038630745.html
 https://www.aliexpress.com/item/1005005704533418.html
+https://www.aliexpress.com/item/1005006085818026.html
 
-Here is my clock, using the Matrix Font and a bit of paper sandwiched between the LED display and the acrylic.
+Here is my clock, using the Matrix Font and a bit of paper sandwiched between the LED display and the acrylic (the larger screens are a bit bright).
 
 ![image](./images/MatrixClock-mine.jpg)
 
@@ -46,13 +48,13 @@ Ideally, this would look a lot prettier than it does but there's not a lot I can
 
 There's only one useable button on this clock but thanks to multi-click, we can use it for a few functions.
 
-| Download Button      | Functionality                   |
-| -------------------- | ------------------------------- |
-| Short-click          | Toggle date display mode on/off |
-| Double-click         | Toggle 12/24-hour mode on/off   |
-| Short-click, long-press | Toggle Time Zone Offset on/off |
-| Long-press 1 second  | Show the clock's IP address (or other wifi status) |
-| Long-press 5 seconds | Toggle the Wifi Stop Seek on/off (see below) |
+| Download Button      | Functionality                   | HA Version        |
+| -------------------- | ------------------------------- | ------------------|
+| Short-click          | Toggle date display mode on/off | Same              |
+| Double-click         | Toggle 12/24-hour mode on/off   | Same              |
+| Short-click, long-press | Toggle Time Zone Offset on/off (or Alt Time Zone) | Toggle Alt Time Zone |
+| Long-press 2 seconds  | Show the clock's IP address (or other wifi status) | Toggle Time/Date Text Replacement |
+| Long-press 5 seconds | Toggle the Wifi Stop Seek on/off (see below) | Toggle Auto Replacement = Alt. Time |
 
 Of course, this is ESPHome, so you can change the button functions by editing the YAML if you wish.
 
@@ -66,6 +68,19 @@ This is functional to flip the clock but you could also use it for other things 
 The clock can display the date at configurable intervals.
 The display interval checks how long the clock was displayed for and then displays the date for the specified time (in seconds).
 Keep in mind that displaying the message from the Home Assistant integration will not interrupt this count, so I recommend choosing sane and even numbers.
+
+### Alternate Time Zone
+
+This option is to allow displaying a Time Zone other than your "home" time zone.  It can be activated permanently or by using the "Auto Replacement = Alt. Time" mode.
+This allows you to see your home time zone and an alternate time zone in another language.  Now your clock is a bilingual time-traveler!
+
+Please note that the time zones MUST be in POSIX format instead of the usual Olsen type (`Asia/Seoul`).
+
+POSIX formats look like: `KST-9` or `PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00` or `AST4ADT,M3.2.0,M11.1.0`.
+
+They include daylight savings and time-switches in the formatting. So, there is no reliance on the ESPHome Olsen database to be current.
+You can view a lot of the time zones in the world in POSIX format [`here`](https://gist.github.com/alwynallan/24d96091655391107939).
+If you need to make a custom POSIX format you can look [`here`](https://developer.ibm.com/articles/au-aix-posix/).
 
 ### Time/Date Text Replacement
 
@@ -86,13 +101,14 @@ Check the language_filters fodler for some examples. French and Korean have some
 
 Time can be synced to the Internet at configurable intervals between 1 - 24 hours, provided the wifi network is connected.
 
-### Time Zones
+## Non-HA Version
 
-It's up to you how to handle time zones. I prefer to keep my home time zone (Korea) as the one I live in and use the offset option according to the time difference of with Korea.
+The file [`EHLPClock.yaml`](EHLPClock.yaml) contains functions useful for using the clock as... mostly just a clock but with some power-saving functions.
+
+### Time Zone Offset
+
+It's up to you how to handle time offset.  It will affect the main time zone as well as the alternate time zone
 You can set an offset with a number that is a positive or negative value with decimal places (ie. 2, -2, 12.5).
-
-You could also set your time zone to GMT and make the default offset match your home.  I haven't really experimented with this way so your mileage may vary,
-especially if you live in an area that uses Daylight Savings Time.
 
 I have allowed steps of 0.25 (equal to 15 minutes) but I notice ESPHome does not enforce those steps. It is possible to set an offset like 0.01 (which would be 36 seconds).
 Be careful.
@@ -130,15 +146,35 @@ You can enable or disable this mode by holding the button for 5 seconds to toggl
 While the clock is connecting to wifi or while in hotspot mode, the blue LED will pulse on and off. In regular mode, the LED will turn on or off will be every 1 second.
 If Stop Seek is enabled, the led will pulse on or off every 2 seconds. If connected to Wifi or Stop Seek (as above) is active, the LED will turn off completely.
 
-## Integration with Home Assistant
+## Home Assistant Version
+
+The file [`EHLPClock-HA.yaml`](EHLPClock-HA.yaml) contains functions useful for using the clock with Home Assistant.
+
+### Service Call
 
 ![image](./images/EHLPC_Home_Assistant_message.png)
 
-This example will send a message that will display for 3 seconds before reverting to the clock for 5 seconds, and repeat until 20 seconds is finished (if it is displaying the message, it will finish that last 3 seconds).
+This example will send a message that will display for 3 seconds before reverting to the clock for 3 seconds, and repeat until 20 seconds is finished (if it is displaying the message, it will finish that last 3 seconds). It may interrupt any screen currently being displayed and will return to it after the display time is finished, show the clock/date screen for the specified time, and repeat until the alive time is finished (which includes both the service screen and clock/date screens).  Everything is measured in seconds.
+
+### Home Assistant Configuration
+
+This will allow the clock to display information screens, following a single interval of clock and date screens.  You can display all screens at once or one per interval.
+They are all treated as sensors, similarly as my [ESPHome-eInk-Boards](https://github.com/trip5/ESPHome-eInk-Boards) projects.
+
+Put something like this in your `configuration.yaml`:
+
+```
+template: !include template.yaml
+```
+
+Anything in `configuration.yaml` under the `template:` heading must now be moved to `template.yaml`. Take a quick look [here](https://community.home-assistant.io/t/how-do-i-setup-template-trigger-sensor-in-a-splitting-config/718626/) for some examples on an easy way to format `template.yaml`.
+
+The file [`template.yaml`](template.yaml) contains several examples how to add sensors that can be automatically shown by the clock.
+I personally use only one sensor in my Home Assistant and 2 clocks in the house get data from the same sensor but you can (of course) create a sensor for each indivudal clock.
 
 ## Crashes?
 
-The memory of the ESP8266 on this clock is extremely limited. With this default yaml, I've already found the device often crashes just when doing an OTA update.
+The memory of the ESP8266 on this clock is extremely limited. With these default yamls, I've found the devices often crash just when doing an OTA update.
 So I usually flash via USB cable.  To save memory, it is probably a good idea to limit the number of characters you include in the glyphs section to only necessary characters.
 
 If your clock is constantly crashing, you can first try eliminating the message_font (read the notes in the yaml). 
@@ -162,6 +198,7 @@ I've found anything below 8kB available to the heap can cause constant crashes.
 
 | Date       | Release Notes    |
 | ---------- | ---------------- |
+| 2024.06.16 | Added Home Assistant version, major changes to main version, fixed time sync error |
 | 2024.06.09 | Replacement Interval fix |
 | 2024.01.07 | Time/Date Text Replacement |
 | 2023.11.16 | Wifi Stop Seek, 2nd date screen, time zone offset, alt time zone |

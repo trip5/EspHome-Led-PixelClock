@@ -1,11 +1,11 @@
 # My github: https://github.com/trip5
 substitutions:
-  name: led-pixelclock-blue
-  friendly_name: Led-PixelClock-Blue
-  comment: "EHLPClock from Trip5"
+  name: led-pixelclock-red
+  friendly_name: Led-PixelClock-Red
+  comment: "EHLPClock-HA from Trip5"
   project_version: "2024.06.16"
-  project_name: Trip5.EspHomeLedPixelClock
-  waiting: " . EHLPClock . ." # shows when waiting for time
+  project_name: Trip5.EspHomeLedPixelClock-HA
+  waiting: " . EHLPClock-HA . ." # shows when waiting for time
   # Time zone must be POSIX format: (ie "KST-9" & "PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00" & "AST4ADT,M3.2.0,M11.1.0") - most can be viewed here: https://gist.github.com/alwynallan/24d96091655391107939
   # Read more about how to customize a POSIX format here: https://developer.ibm.com/articles/au-aix-posix/
   time_zone: "AST4ADT,M3.2.0,M11.1.0"
@@ -20,6 +20,8 @@ substitutions:
   status_led_pin: GPIO2
   download_button_pin: GPIO0
   rotation_pin: GPIO16
+  # This is the sensor name from your Home Assistant configuration
+  ha_sensor_data: sensor.led_pixelclock_data
   # time and date formats: https://esphome.io/components/time/?highlight=strftime#strftime and https://strftime.org/
   # time_format: "%H:%M" (13:25) / "%H:%M:%S" (13:25:59) / "%I:%M%p" (01:25PM) / "%l:%M%p" (1:25PM)
   time_format12: "%l:%M%p"
@@ -49,32 +51,15 @@ esp8266:
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
-  reboot_timeout: 0s # reboot if no wifi (must be disabled for wifi to be turned off)
+  reboot_timeout: 15min # Default is 15min
   enable_on_boot: True
   id: wifi_id
   ap:
     ssid: $name
     password: !secret ap_password
-    ap_timeout: 10s # this has to be short, especially if using Stop Seek Wifi
   on_connect:
     - logger.log: "Wifi connected"
     - light.turn_off: led1
-    - delay: 1s
-    - button.press: display_ip
-    - lambda: |-
-        id(wifi_stop_seek_time_count) = 0;
-        id(my_time)->update();
-  on_disconnect:
-    - if:
-        condition:
-          lambda: |-
-            return (id(wifi_stop_seek) ==  true);
-        then:
-          - logger.log: "Wifi disconnected - will be disabled soon (stop seek is on)..."
-        else:
-          - logger.log: "Wifi disconnected"
-    - delay: 1s
-    - button.press: display_ip
 
 font:
   # Get the fonts from https://github.com/trip5/MatrixClockFonts (but you can use others too!)
@@ -94,14 +79,15 @@ font:
     id: message_font
     size: 8
     glyphs:  |
-      ! "#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz°
-    # EHLPClock .DatenfWiONI:Sp
-    # Above should cover the system messages: "EHLPClock . / Date on / Date off" if you don't plan on using on using the HA service calls
+      ! "#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz°₩₿
+    # EHLPClock-A. Datenf
+    # Above should cover the system messages: "EHLPClock-HA . / Date on / Date off" if you don't plan on using on using the HA service calls or sensors
+
 time:
-  - platform: sntp # use SNTP as a time source
+  - platform: homeassistant # use Home Assistant as a time source (sntp is also possible)
     id: my_time
     timezone: "$time_zone"
-    update_interval: 24h # This seems like the longest safe amount of time - actual configured update happens in interval section
+    update_interval: 24h # This seems like the longest safe amount of time - actual configured update happens in interval section (or when changing time zone)
   - platform: ds1307 # even though it's a ds3231
     id: my_time_ds
     update_interval: never
@@ -123,39 +109,42 @@ interval:
           id(sync_time_count) = 0;
           id(sync_the_time).execute();
         }
-  - interval: 1s # check if the wifi should be turned off, and if so, do it (or turn on if stop seek has been disabled) and blink led while seeking wifi
-    then:
-      - lambda: |-
-          if (id(wifi_stop_seek) == true && !id(wifi_id).is_connected() && !id(wifi_id).is_disabled()){
-            id(wifi_stop_seek_time_count) += 1;
-            if (id(wifi_stop_seek_time_count) >= id(wifi_stop_seek_time)) {
-              id(wifi_stop_seek_time_count) = 0;
-              id(led1).turn_off();
-              id(wifi_id)->disable();
-              id(display_ip).press();
-            }
-          } else {
-            if (id(wifi_stop_seek) == false && id(wifi_id).is_disabled()) {
-              id(wifi_stop_seek_time_count) = 0;
-              id(wifi_id)->enable();
-              id(display_ip).press();
-            }
-          }
-          static int blinkled = 0;
-          if (!id(wifi_id).is_connected() && !id(wifi_id).is_disabled()) {
-            if (id(wifi_stop_seek) == false) {
-              auto call = id(led1).toggle();
-              call.perform();
-            } else {
-              if (++blinkled & 1) {
-                auto call = id(led1).toggle();
-                call.perform();
-              }
-            }
-          }
 
 api:
-  reboot_timeout: 0s # Must be disabled to allow the Wifi enable/disable to function
+  reboot_timeout: 15min # 15min is default
+  # This next section creates the Home Assistant services to allow messages to be displayed (also used for certain system messages)
+  services:
+    - service: message
+      variables:
+        message: string
+        message_alive_time: int
+        message_display_time: int
+        message_clock_time: int
+      then:
+        - globals.set:
+            id: message
+            value: !lambda 'return message;'
+        - globals.set:
+            id: message_alive_time
+            value: !lambda 'return message_alive_time;'
+        - globals.set:
+            id: message_display_time
+            value: !lambda 'return message_display_time;'
+        - globals.set:
+            id: message_clock_time
+            value: !lambda 'return message_clock_time;'
+        - globals.set:
+            id: message_clock_time_count
+            value: !lambda 'return message_clock_time;'
+        - globals.set:
+            id: message_alive_time_count
+            value: '0'
+        - logger.log:
+            format: "Message: %s"
+            args: [ 'message.c_str()' ]
+        - logger.log:
+            format: "Alive Time: %i / Display Time: %i / Clock Time: %i"
+            args: [ 'message_alive_time', 'message_display_time' , 'message_clock_time' ]
 
 mdns:
   disabled: false # needs to be on to connect to HA
@@ -174,9 +163,10 @@ logger:
 ota:
   password: !secret ota_password
 
-web_server:
-  port: 80
-  ota: true
+#Web Server is disabled due to memory constraints.  Enable at your own risk (consider removing captive_portal, reducing fonts to 1 to save memory)
+#web_server:
+#  port: 80
+#  ota: true
 #  include_internal: true # probably not necessary, as it will expose more than needed to the Web UI
 
 captive_portal:
@@ -260,6 +250,47 @@ text_sensor:
         - "Thu -> 목요일"
         - "Fri -> 금요일"
         - "Sat -> 토요일"
+  # Call text sensors from Home Assistant
+  - platform: homeassistant
+    entity_id: '${ha_sensor_data}'
+    attribute: 0
+    id: ha_sensor_data_0
+  - platform: homeassistant
+    entity_id: '${ha_sensor_data}'
+    attribute: 1
+    id: ha_sensor_data_1
+  - platform: homeassistant
+    entity_id: '${ha_sensor_data}'
+    attribute: 2
+    id: ha_sensor_data_2
+  - platform: homeassistant
+    entity_id: '${ha_sensor_data}'
+    attribute: 3
+    id: ha_sensor_data_3
+  - platform: homeassistant
+    entity_id: '${ha_sensor_data}'
+    attribute: 4
+    id: ha_sensor_data_4
+  - platform: homeassistant
+    entity_id: '${ha_sensor_data}'
+    attribute: 5
+    id: ha_sensor_data_5
+  - platform: homeassistant
+    entity_id: '${ha_sensor_data}'
+    attribute: 6
+    id: ha_sensor_data_6
+  - platform: homeassistant
+    entity_id: '${ha_sensor_data}'
+    attribute: 7
+    id: ha_sensor_data_7
+  - platform: homeassistant
+    entity_id: '${ha_sensor_data}'
+    attribute: 8
+    id: ha_sensor_data_8
+  - platform: homeassistant
+    entity_id: '${ha_sensor_data}'
+    attribute: 9
+    id: ha_sensor_data_9
 
 output:
   - platform: esp8266_pwm
@@ -315,26 +346,24 @@ binary_sensor:
           - OFF for at least 0.1s
         then:
           - switch.toggle: hour12_select
-      #Click once, then Hold will toggle TZ Offset
+      #Click once, then Hold will toggle Alt Time Zone
       - timing:
           - ON for at most 1s
           - OFF for at most 0.5s
           - ON for at least 1s
         then:
-          - switch.toggle: tzoffset_on_select
-      #...or if would you rather toggle Alt Time Zone:
-      #    - switch.toggle: tz_alt_select
-      #Hold 2s will show the IP (or other wifi status)
+          - switch.toggle: tz_alt_select
+      #Hold 2s will toggle Time/Date Text Replacement
       - timing:
           - ON for at least 2s
           - OFF for at least 0.5s
         then:
-          - button.press: display_ip
-      #Hold 5s will toggle the wifi timeout
+          - switch.toggle: replace_mode_select
+      #Hold 5s will toggle Auto Replacement = Alt. Time
       - timing:
           - ON for at least 5s
         then:
-          - switch.toggle: wifi_stop_seek_select
+          - switch.toggle: auto_replace_tz_alt_select
   - platform: gpio
     pin: 
       number: $rotation_pin
@@ -370,65 +399,173 @@ display:
             }
           }
         } else {
-          if ((id(message_alive_time) != 0) && (id(message_clock_time) != 0)) {
-            id(message_clock_time_count) += 1;
-            id(message_alive_time_count) += 1;
-          }
-          // apply offset if needed https://community.home-assistant.io/t/multiple-time-zones/435315/12
-          int offset = 0;
-          if (id(tzoffset_on) != false) {
-            offset = (int)(60 * 60 * (id(tzoffset)));
-          }
-          std::time_t tz1time = (id(my_time).now().timestamp + offset);
-          std::tm *tz1time_astm = localtime(&tz1time);
-          char display_tmdt[20];
-          // check if the date should be displayed
-          if ((id(date_display_time_count) >= (id(date_display_interval))) && (id(date_display_mode) != false)) {
-            id(date_display_count) += 1;
-            // if date_formatA is on, display it for 50% of the time first, after the 1st...
-            if ((id(date_A_mode) == true) && (id(date_display_count) <= (id(date_display_time) / 2))) {
-              strftime(display_tmdt, 20, "$date_formatA", tz1time_astm);
-              // check if Date A text replacement should be made
-              if (id(replace_mode_auto) == true) {
-                std::string tmdt(display_tmdt);
-                id(dateA_text).publish_state(tmdt);
-                strcpy(display_tmdt, id(dateA_text).state.c_str());
-              }
-            } else {
-              strftime(display_tmdt, 20, "$date_format", tz1time_astm);
-              // check if Date text replacement should be made
-              if (id(replace_mode_auto) == true) {
-                std::string tmdt(display_tmdt);
-                id(date_text).publish_state(tmdt);
-                strcpy(display_tmdt, id(date_text).state.c_str());
+          // check if we should display sensor data now
+          if (id(ha_sensor_data_now) == true) {
+            std::string sensor_data_text = "";
+            if (id(ha_sensor_data_this) == 0) {
+              if (id(ha_sensor_data_0).state.empty()) {
+                id(ha_sensor_data_this) = 1;
+              } else {
+                sensor_data_text = id(ha_sensor_data_0).state.c_str();
               }
             }
-          } else {
-            id(date_display_count) = 0;
-            id(date_display_time_count) += 1;
-            // choose which time format to display
-            if (id(hour12_mode) == true) {
-              strftime(display_tmdt, 20, "$time_format12", tz1time_astm);
-            } else {
-              strftime(display_tmdt, 20, "$time_format24", tz1time_astm);
+            if (id(ha_sensor_data_this) == 1) {
+              if (id(ha_sensor_data_1).state.empty()) {
+                id(ha_sensor_data_this) = 2;
+              } else {
+                sensor_data_text = id(ha_sensor_data_1).state.c_str();
+              }
             }
-            // check if Time text replacement should be made
-            if (id(replace_mode_auto) == true) {
-              std::string tmdt(display_tmdt);
-              id(time_text).publish_state(tmdt);
-              strcpy(display_tmdt, id(time_text).state.c_str());
+            if (id(ha_sensor_data_this) == 2) {
+              if (id(ha_sensor_data_2).state.empty()) {
+                id(ha_sensor_data_this) = 3;
+              } else {
+                sensor_data_text = id(ha_sensor_data_2).state.c_str();
+              }
+            }
+            if (id(ha_sensor_data_this) == 3) {
+              if (id(ha_sensor_data_3).state.empty()) {
+                id(ha_sensor_data_this) = 4;
+              } else {
+                sensor_data_text = id(ha_sensor_data_3).state.c_str();
+              }
+            }
+            if (id(ha_sensor_data_this) == 4) {
+              if (id(ha_sensor_data_4).state.empty()) {
+                id(ha_sensor_data_this) = 5;
+              } else {
+                sensor_data_text = id(ha_sensor_data_4).state.c_str();
+              }
+            }
+            if (id(ha_sensor_data_this) == 5) {
+              if (id(ha_sensor_data_5).state.empty()) {
+                id(ha_sensor_data_this) = 6;
+              } else {
+                sensor_data_text = id(ha_sensor_data_5).state.c_str();
+              }
+            }
+            if (id(ha_sensor_data_this) == 6) {
+              if (id(ha_sensor_data_6).state.empty()) {
+                id(ha_sensor_data_this) = 7;
+
+              } else {
+                sensor_data_text = id(ha_sensor_data_6).state.c_str();
+              }
+            }
+            if (id(ha_sensor_data_this) == 7) {
+              if (id(ha_sensor_data_7).state.empty()) {
+                id(ha_sensor_data_this) = 8;
+              } else {
+                sensor_data_text = id(ha_sensor_data_7).state.c_str();
+              }
+            }
+            if (id(ha_sensor_data_this) == 8) {
+              if (id(ha_sensor_data_8).state.empty()) {
+                id(ha_sensor_data_this) = 9;
+              } else {
+                sensor_data_text = id(ha_sensor_data_8).state.c_str();
+              }
+            }
+            if (id(ha_sensor_data_this) == 9) {
+              if (id(ha_sensor_data_9).state.empty()) {
+                if (id(ha_sensor_data_all) == 0) {
+                  id(ha_sensor_data_this) = 0;
+                  sensor_data_text = id(ha_sensor_data_0).state.c_str();
+                }
+              } else {
+                sensor_data_text = id(ha_sensor_data_9).state.c_str();
+              }
+            }
+            if (sensor_data_text != "") {
+              id(ha_sensor_data_this_time) += 1;
+              if ((id(ha_sensor_data_this_time) >= (id(ha_sensor_data_time))) && (id(ha_sensor_data_all) == true)) {
+                id(ha_sensor_data_this_time) = 0;
+                id(ha_sensor_data_this) += 1;
+              }
+              if ((id(ha_sensor_data_this_time) > (id(ha_sensor_data_time))) && (id(ha_sensor_data_all) == false)) {
+                id(ha_sensor_data_this_time) = 0;
+                id(ha_sensor_data_this) += 1;
+                id(ha_sensor_data_now) = false ; // we needed to buy 1 second if this mode is on
+              } else {
+                it.print(0, 0, id(message_font), sensor_data_text.c_str());          // change message_font to default_font if you need memory
+              }
+            } else {
+              id(ha_sensor_data_now) = false;
+              id(ha_sensor_data_this) = false;
+            }
+            if ((id(ha_sensor_data_this) == 9) && (id(ha_sensor_data_all) == true)) {
+              id(ha_sensor_data_this) = false;
+              id(ha_sensor_data_now) = false;
             }
           }
-          // print the date / time
-          it.printf((32 / 2), (8 / 2), id(default_font), TextAlign::CENTER, "%s", display_tmdt);
-          if (((id(date_display_count) >= id(date_display_time)) && (id(date_display_mode) != false)) || ((id(date_display_time_count) >= id(date_display_interval)) && (id(date_display_mode) == false))) {
-            id(date_display_time_count) = 0;
-            // check if Replace Interval is active, count or reset, when date display is finished - or after the interval, depending
-            if (id(replace_interval) > 0) {
-              id(replace_interval_count) += 1;
-              if (id(replace_interval_count) >= id(replace_interval)) {
-                id(replace_interval_count) = 0;
-                id(replace_mode_auto) = (! id(replace_mode_auto));
+          // because there may be no HA sensors, we can't skip display the time/date - just check if it actually did print it
+          if (id(ha_sensor_data_now) == false) {
+            if ((id(message_alive_time) != 0) && (id(message_clock_time) != 0)) {
+              id(message_clock_time_count) += 1;
+              id(message_alive_time_count) += 1;
+            }
+            std::time_t tz1time = (id(my_time).now().timestamp);
+            std::tm *tz1time_astm = localtime(&tz1time);
+            char display_tmdt[20];
+            // check if the date should be displayed
+            if ((id(date_display_time_count) >= (id(date_display_interval))) && (id(date_display_mode) != false)) {
+              id(date_display_count) += 1;
+              // if date_formatA is on, display it for 50% of the time first, after the 1st...
+              if ((id(date_A_mode) == true) && (id(date_display_count) <= (id(date_display_time) / 2))) {
+                strftime(display_tmdt, 20, "$date_formatA", tz1time_astm);
+                // check if Date A text replacement should be made
+                if (id(replace_mode_auto) == true) {
+                  std::string tmdt(display_tmdt);
+                  id(dateA_text).publish_state(tmdt);
+                  strcpy(display_tmdt, id(dateA_text).state.c_str());
+                }
+              } else {
+                strftime(display_tmdt, 20, "$date_format", tz1time_astm);
+                // check if Date text replacement should be made
+                if (id(replace_mode_auto) == true) {
+                  std::string tmdt(display_tmdt);
+                  id(date_text).publish_state(tmdt);
+                  strcpy(display_tmdt, id(date_text).state.c_str());
+                }
+              }
+            } else {
+              id(date_display_count) = 0;
+              id(date_display_time_count) += 1;
+              // choose which time format to display
+              if (id(hour12_mode) == true) {
+                strftime(display_tmdt, 20, "$time_format12", tz1time_astm);
+              } else {
+                strftime(display_tmdt, 20, "$time_format24", tz1time_astm);
+              }
+              // check if Time text replacement should be made
+              if (id(replace_mode_auto) == true) {
+                std::string tmdt(display_tmdt);
+                id(time_text).publish_state(tmdt);
+                strcpy(display_tmdt, id(time_text).state.c_str());
+              }
+            }
+            // print the date / time
+            it.printf((32 / 2), (8 / 2), id(default_font), TextAlign::CENTER, "%s", display_tmdt);
+            if (((id(date_display_count) >= id(date_display_time)) && (id(date_display_mode) != false)) || ((id(date_display_time_count) >= id(date_display_interval)) && (id(date_display_mode) == false))) {
+              id(date_display_time_count) = 0;
+              // check if Sensor Data Stop is active 
+              if (id(ha_sensor_data_stop) == false) {
+                id(ha_sensor_data_now) = 1;
+              }
+              // check if Replace Interval is active, count or reset, when date display is finished - or after the interval, depending... and trip the boolean to display HA sensors
+              if (id(replace_interval) > 0) {
+                id(replace_interval_count) += 1;
+                if (id(replace_interval_count) >= id(replace_interval)) {
+                  id(replace_interval_count) = 0;
+                  if (id(auto_replace_tz_alt) == true) {
+                    if (id(replace_mode_auto) == true) {
+                      id(tz_alt_auto_select).turn_off();
+                    } else {
+                      id(tz_alt_auto_select).turn_on();
+                    }
+                  }
+                  id(replace_mode_auto) = (! id(replace_mode_auto));
+                }
               }
             }
           }
@@ -475,14 +612,6 @@ globals:
     type: int
     restore_value: false
     initial_value: '0'
-  - id: tzoffset
-    type: float
-    restore_value: true
-    initial_value: '0'
-  - id: tzoffset_on
-    type: bool
-    restore_value: true
-    initial_value: 'false'
   - id: message
     type: std::string
     restore_value: false
@@ -539,18 +668,30 @@ globals:
     type: int
     restore_value: false
     initial_value: '0'
-  - id: wifi_stop_seek
-    type: bool
-    restore_value: true
-    initial_value: 'false'
-  - id: wifi_stop_seek_time
-    type: int
-    restore_value: true
-    initial_value: '180'
-  - id: wifi_stop_seek_time_count
+  - id: ha_sensor_data_this
     type: int
     restore_value: false
     initial_value: '0'
+  - id: ha_sensor_data_this_time
+    type: int
+    restore_value: false
+    initial_value: '0'
+  - id: ha_sensor_data_now
+    type: bool
+    restore_value: false
+    initial_value: 'false'
+  - id: ha_sensor_data_all
+    type: bool
+    restore_value: true
+    initial_value: 'false'
+  - id: ha_sensor_data_stop
+    type: bool
+    restore_value: true
+    initial_value: 'false'
+  - id: ha_sensor_data_time
+    type: int
+    restore_value: true
+    initial_value: '2'
 # Alt Time Zone variable
   - id: tz_alt
     type: bool
@@ -571,32 +712,7 @@ button:
     name: "$friendly_name Restart"
     internal: true
     entity_category: diagnostic
-  - platform: template
-    id: display_ip
-    name: "$friendly_name Display IP Address"
-    internal: true
-    entity_category: diagnostic
-    on_press:
-      - if:
-          condition:
-            not:
-              wifi.connected:
-          then:
-            - lambda: |-
-                if (id(wifi_id).is_disabled()) {
-                  id(message) = ("Wifi Off");
-                } else {
-                  id(message) = ("No Wifi");
-                }
-                id(message_alive_time) = 3;
-                id(message_display_time) = 3;
-                id(message_clock_time) = 0;
-          else:
-            - lambda: |-
-                id(message) = (" IP : " + id(wifi_ip).state + " . . . . ");
-                id(message_alive_time) = 9;
-                id(message_display_time) = 9;
-                id(message_clock_time) = 0;
+
 
 switch:
   - platform: template
@@ -669,24 +785,6 @@ switch:
           ESP_LOGD("main", "Replace Mode Auto Off");
           id(replace_mode_auto) = false;
   - platform: template
-    name: "$friendly_name Time Zone Offset On"
-    id: tzoffset_on_select
-    restore_mode: RESTORE_DEFAULT_OFF
-    lambda: |-
-      if (id(tzoffset_on)) {
-        return true;
-      } else {
-        return false;
-      }
-    turn_on_action:
-        lambda: |-
-          ESP_LOGD("main", "TZ Offset On");
-          id(tzoffset_on) = true;
-    turn_off_action:
-        lambda: |-
-          ESP_LOGD("main", "TZ Offset Off");
-          id(tzoffset_on) = false;
-  - platform: template
     name: "$friendly_name Date Display Mode"
     id: date_mode_select
     restore_mode: RESTORE_DEFAULT_OFF
@@ -713,33 +811,41 @@ switch:
             id(message_display_time) = 1;
             id(message_clock_time) = 0;
   - platform: template
-    name: "$friendly_name Wifi Stop Seek"
-    id: wifi_stop_seek_select
+    name: "$friendly_name HA Sensors Data All"
+    id: ha_sensor_data_all_select
     restore_mode: RESTORE_DEFAULT_OFF
     lambda: |-
-      if (id(wifi_stop_seek)) {
+      if (id(ha_sensor_data_all)) {
         return true;
       } else {
         return false;
       }
     turn_on_action:
-        - delay: 1s
-        - lambda: |-
-            ESP_LOGD("main", "Wifi Stop Seek on");
-            id(wifi_stop_seek) = true;
-            id(message) = ("StopSeek");
-            id(message_alive_time) = 1;
-            id(message_display_time) = 1;
-            id(message_clock_time) = 0;
+        lambda: |-
+          ESP_LOGD("main", "HA Sensors Data All On");
+          id(ha_sensor_data_all) = true;
     turn_off_action:
-        - delay: 1s
-        - lambda: |-
-            ESP_LOGD("main", "Wifi Stop Seek off");
-            id(wifi_stop_seek) = false;
-            id(message) = ("Seek...");
-            id(message_alive_time) = 1;
-            id(message_display_time) = 1;
-            id(message_clock_time) = 0;
+        lambda: |-
+          ESP_LOGD("main", "HA Sensors Data All Off");
+          id(ha_sensor_data_all) = false;
+  - platform: template
+    name: "$friendly_name HA Sensors Data Stop"
+    id: ha_sensor_data_stop_select
+    restore_mode: RESTORE_DEFAULT_OFF
+    lambda: |-
+      if (id(ha_sensor_data_stop)) {
+        return true;
+      } else {
+        return false;
+      }
+    turn_on_action:
+        lambda: |-
+          ESP_LOGD("main", "HA Sensors Data Stop On");
+          id(ha_sensor_data_stop) = true;
+    turn_off_action:
+        lambda: |-
+          ESP_LOGD("main", "HA Sensors Data Stop Off");
+          id(ha_sensor_data_stop) = false;
 # Alt Time Zone selector / activator
   - platform: template
     name: "$friendly_name Alternate Time ($time_zone_alt_name)"
@@ -878,22 +984,6 @@ number:
             }
           }
   - platform: template
-    name: "$friendly_name Time Zone Offset"
-    id: tzoffset_select
-    restore_value: true
-    optimistic: true
-    step: 0.25
-    min_value: -26
-    max_value: 26
-    initial_value: 0
-    mode: box
-    unit_of_measurement: hours
-    set_action:
-      then:
-        lambda: |-
-          id(tzoffset) = x;
-          ESP_LOGD("main", "Time Zone Offset: %.2f hours", id(tzoffset));
-  - platform: template
     name: "$friendly_name Time Sync Interval (hours)"
     id: sync_time_select
     restore_value: true
@@ -908,16 +998,16 @@ number:
           id(sync_time) = x;
           ESP_LOGD("main", "Time Sync Interval: %d hours", id(sync_time));
   - platform: template
-    name: "$friendly_name Wifi Stop Seek Time (seconds)"
-    id: wifi_stop_seek_time_select
+    name: "$friendly_name HA Sensor Data Time (seconds)"
+    id: ha_sensor_data_time_select
     restore_value: true
     optimistic: true
-    step: 5
-    min_value: 60
-    max_value: 300
+    step: 1
+    min_value: 1
+    max_value: 10
     mode: box
     set_action:
       then:
         lambda: |-
           id(sync_time) = x;
-          ESP_LOGD("main", "Wifi Stop Seek Time: %d seconds", id(wifi_stop_seek_time));
+          ESP_LOGD("main", "HA Sensor Data Time: %d seconds", id(ha_sensor_data_time));
