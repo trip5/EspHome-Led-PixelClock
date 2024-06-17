@@ -67,19 +67,6 @@ The clock can display the date at configurable intervals.
 The display interval checks how long the clock was displayed for and then displays the date for the specified time (in seconds).
 Keep in mind that displaying the message from the Home Assistant integration will not interrupt this count, so I recommend choosing sane and even numbers.
 
-### Alternate Time Zone
-
-This option is to allow displaying a Time Zone other than your "home" time zone.  It can be activated permanently or by using the "Auto Replacement = Alt. Time" mode.
-This allows you to see your home time zone and an alternate time zone in another language.  Now your clock is a bilingual time-traveler!
-
-Please note that the time zones MUST be in POSIX format instead of the usual Olsen type (`Asia/Seoul`).
-
-POSIX formats look like: `KST-9` or `PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00` or `AST4ADT,M3.2.0,M11.1.0`.
-
-They include daylight savings and time-switches in the formatting. So, there is no reliance on the ESPHome Olsen database to be current.
-You can view a lot of the time zones in the world in POSIX format [`here`](https://gist.github.com/alwynallan/24d96091655391107939).
-If you need to make a custom POSIX format you can look [`here`](https://developer.ibm.com/articles/au-aix-posix/).
-
 ### Time/Date Text Replacement
 
 Since ESPHome can't seem to use any locale for time other than English, I have added an option to substitute the time and date text to something else.
@@ -99,7 +86,20 @@ Check the language_filters folder for some examples.  So far there is:
 [`Greek`](language_filters/Greek.yaml) &
 [`Chinese`](language_filters/Chinese.yaml)
 
-Hopefully this OnlineGDB hosts the [`Glyphs Helper`](https://www.onlinegdb.com/fork/zh1VszNT1) for a long while.
+Hopefully OnlineGDB hosts this [`Glyphs Helper`](https://www.onlinegdb.com/fork/zh1VszNT1) for a long while. See inside the yaml for more.
+
+### Alternate Time Zone
+
+This option is to allow displaying a Time Zone other than your "home" time zone.  It can be activated permanently or by using the "Auto Replacement = Alt. Time" mode.
+This allows you to see your home time zone and an alternate time zone in another language.  Now your clock is a bilingual time-traveler!
+
+Please note that the time zones MUST be in POSIX format instead of the usual Olsen type (`Asia/Seoul`).
+
+POSIX formats look like: `KST-9` or `PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00` or `AST4ADT,M3.2.0,M11.1.0`.
+
+They include daylight savings and time-switches in the formatting. So, there is no reliance on the ESPHome Olsen database to be current.
+You can view a lot of the time zones in the world in POSIX format [`here`](https://gist.github.com/alwynallan/24d96091655391107939).
+If you need to make a custom POSIX format you can look [`here`](https://developer.ibm.com/articles/au-aix-posix/).
 
 ### Time Sync
 
@@ -108,6 +108,7 @@ Time can be synced to the Internet at configurable intervals between 1 - 24 hour
 ## Non-HA Version
 
 The file [`EHLPClock.yaml`](EHLPClock.yaml) contains functions useful for using the clock as... mostly just a clock but with some power-saving functions.
+It includes all of the functions above as well as these below.
 
 ### Time Zone Offset
 
@@ -153,6 +154,7 @@ If Stop Seek is enabled, the led will pulse on or off every 2 seconds. If connec
 ## Home Assistant Version
 
 The file [`EHLPClock-HA.yaml`](EHLPClock-HA.yaml) contains functions useful for using the clock with Home Assistant.
+It does not include the Time Zone Offset or Wifi Stop Seek but it does includes all of the functions below.
 
 ### Service Call
 
@@ -160,7 +162,7 @@ The file [`EHLPClock-HA.yaml`](EHLPClock-HA.yaml) contains functions useful for 
 
 This example will send a message that will display for 3 seconds before reverting to the clock for 3 seconds, and repeat until 20 seconds is finished (if it is displaying the message, it will finish that last 3 seconds). It may interrupt any screen currently being displayed and will return to it after the display time is finished, show the clock/date screen for the specified time, and repeat until the alive time is finished (which includes both the service screen and clock/date screens).  Everything is measured in seconds.
 
-### Home Assistant Configuration
+### Template Sensors
 
 This will allow the clock to display information screens, following a single interval of clock and date screens.  You can display all screens at once or one per interval.
 They are all treated as sensors, similarly as my [ESPHome-eInk-Boards](https://github.com/trip5/ESPHome-eInk-Boards) projects.
