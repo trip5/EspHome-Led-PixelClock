@@ -3,7 +3,7 @@ substitutions:
   name: led-pixelclock-blue
   friendly_name: Led-PixelClock-Blue
   comment: "EHLPClock from Trip5"
-  project_version: "2024.06.16"
+  project_version: "2024.06.19"
   project_name: Trip5.EspHomeLedPixelClock
   waiting: " . EHLPClock . ." # shows when waiting for time
   # Time zone must be POSIX format: (ie "KST-9" & "PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00" & "AST4ADT,M3.2.0,M11.1.0") - most can be viewed here: https://gist.github.com/alwynallan/24d96091655391107939
@@ -20,6 +20,7 @@ substitutions:
   status_led_pin: GPIO2
   download_button_pin: GPIO0
   rotation_pin: GPIO16
+  
   # time and date formats: https://esphome.io/components/time/?highlight=strftime#strftime and https://strftime.org/
   # time_format: "%H:%M" (13:25) / "%H:%M:%S" (13:25:59) / "%I:%M%p" (01:25PM) / "%l:%M%p" (1:25PM)
   time_format12: "%l:%M%p"
@@ -364,7 +365,7 @@ display:
       // Display the message if all conditions are met
       if (id(my_time).now().is_valid()) {
         if ((id(message_alive_time) != 0) && (id(message_clock_time_count) >= id(message_clock_time))) {
-          ESP_LOGD("main", "Showing Message");
+          ESP_LOGD("main", "Showing Message from Home Asssistant Service");
           id(message_display_time_count) += 1;
           id(message_alive_time_count) += 1;
           std::string message_text = id(message);
@@ -392,7 +393,7 @@ display:
           std::tm *tz1time_astm = localtime(&tz1time);
           char display_tmdt[20];
           // check if the date should be displayed
-          if ((id(date_display_time_count) >= (id(date_display_interval))) && (id(date_display_mode) != false)) {
+          if ((id(date_display_time_count) >= (id(time_display_time))) && (id(date_display_mode) != false)) {
             id(date_display_count) += 1;
             // if date_formatA is on, display it for 50% of the time first, after the 1st...
             if ((id(date_A_mode) == true) && (id(date_display_count) <= (id(date_display_time) / 2))) {
@@ -401,7 +402,7 @@ display:
               if (id(replace_mode_auto) == true) {
                 std::string tmdt(display_tmdt);
                 id(dateA_text).publish_state(tmdt);
-                strcpy(display_tmdt, id(dateA_text).state.c_str());
+                strcpy(display_tmdt, id(dateA_text).state.c_str()); 
               }
             } else {
               strftime(display_tmdt, 20, "$date_format", tz1time_astm);
@@ -430,7 +431,7 @@ display:
           }
           // print the date / time
           it.printf((32 / 2), (8 / 2), id(default_font), TextAlign::CENTER, "%s", display_tmdt);
-          if (((id(date_display_count) >= id(date_display_time)) && (id(date_display_mode) != false)) || ((id(date_display_time_count) >= id(date_display_interval)) && (id(date_display_mode) == false))) {
+          if (((id(date_display_count) >= id(date_display_time)) && (id(date_display_mode) != false)) || ((id(date_display_time_count) >= id(time_display_time)) && (id(date_display_mode) == false))) {
             id(date_display_time_count) = 0;
             // check if Replace Interval is active, count or reset, when date display is finished - or after the interval, depending
             if (id(replace_interval) > 0) {
@@ -524,7 +525,7 @@ globals:
     type: bool
     restore_value: true
     initial_value: 'false'
-  - id: date_display_interval
+  - id: time_display_time
     type: int
     restore_value: true
     initial_value: '11'
@@ -833,8 +834,8 @@ number:
           id(brightness_level) = x;
           ESP_LOGD("main", "Brightness: %d", id(brightness_level));
   - platform: template
-    name: "$friendly_name Date Display Interval"
-    id: date_display_interval_select
+    name: "$friendly_name Time Display Time"
+    id: time_display_time_select
     restore_value: true
     optimistic: true
     step: 1
@@ -845,8 +846,8 @@ number:
     set_action:
       then:
         lambda: |-
-          id(date_display_interval) = x;
-          ESP_LOGD("main", "Date Display Interval: %d seconds", id(date_display_interval));
+          id(time_display_time) = x;
+          ESP_LOGD("main", "Time Display Time: %d seconds", id(time_display_time));
   - platform: template
     name: "$friendly_name Date Display Time"
     id: date_display_time_select

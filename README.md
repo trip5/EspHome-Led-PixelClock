@@ -204,6 +204,7 @@ I've found anything below 8kB available to the heap can cause constant crashes.
 
 | Date       | Release Notes    |
 | ---------- | ---------------- |
+| 2024.06.19 | Fixed display times |
 | 2024.06.16 | Added Home Assistant version, major changes to main version, fixed time sync error |
 | 2024.06.09 | Replacement Interval fix |
 | 2024.01.07 | Time/Date Text Replacement |
