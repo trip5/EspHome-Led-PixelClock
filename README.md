@@ -98,8 +98,10 @@ Please note that the time zones MUST be in POSIX format instead of the usual Ols
 POSIX formats look like: `KST-9` or `PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00` or `AST4ADT,M3.2.0,M11.1.0`.
 
 They include daylight savings and time-switches in the formatting. So, there is no reliance on the ESPHome Olsen database to be current.
-You can view a lot of the time zones in the world in POSIX format [`here`](https://gist.github.com/alwynallan/24d96091655391107939).
-If you need to make a custom POSIX format you can look [`here`](https://developer.ibm.com/articles/au-aix-posix/).
+You can view a lot of the time zones in the world in POSIX format [`here`](https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv) or
+[`here`](https://support.cyberdata.net/portal/en/kb/articles/010d63c0cfce3676151e1f2d5442e311).
+If you need to make a custom POSIX format you can look [`here`](https://developer.ibm.com/articles/au-aix-posix/) or even better, use this
+[`POSIX Generator`](https://www.topyuan.top/posix) courtesy of TopYuan.
 
 ### Time Sync
 
@@ -259,4 +261,6 @@ About outputting to the MAX7219 Digit Display: https://esphome.io/components/dis
 ESPHome's Display: https://esphome.io/components/display/index.html
 
 The original creator if this clock (unsure if the Chinese Manufacturer appears to be related): https://www.youtube.com/@hacklabs
+
+Perhaps the same, perhaps not, TopYuan also developed a firmware for an LED Matrix clock (but closed-source, unfortunately): https://github.com/yuan910715/Esp8266_Wifi_Matrix_Clock
 
