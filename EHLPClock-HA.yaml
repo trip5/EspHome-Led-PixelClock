@@ -172,7 +172,8 @@ logger:
     number: ERROR
 
 ota:
-  password: !secret ota_password
+  - platform: esphome
+    password: !secret ota_password
 
 #Web Server is disabled due to memory constraints.  Enable at your own risk (consider removing captive_portal, reducing fonts to 1 to save memory)
 #web_server:

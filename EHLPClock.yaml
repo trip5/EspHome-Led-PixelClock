@@ -182,7 +182,8 @@ logger:
     number: ERROR
 
 ota:
-  password: !secret ota_password
+  - platform: esphome
+    password: !secret ota_password
 
 web_server:
   port: 80
