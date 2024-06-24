@@ -6,8 +6,11 @@ substitutions:
   project_version: "2024.06.19"
   project_name: Trip5.EspHomeLedPixelClock-HA
   waiting: " . EHLPClock-HA . ." # shows when waiting for time
-  # Time zone must be POSIX format: (ie "KST-9" & "PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00" & "AST4ADT,M3.2.0,M11.1.0") - most can be viewed here: https://gist.github.com/alwynallan/24d96091655391107939
-  # Read more about how to customize a POSIX format here: https://developer.ibm.com/articles/au-aix-posix/
+  # Time zone must be POSIX format: (ie "KST-9" & "PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00" & "AST4ADT,M3.2.0,M11.1.0")
+  # Most can be viewed here: https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
+  # or here: https://support.cyberdata.net/portal/en/kb/articles/010d63c0cfce3676151e1f2d5442e311
+  # If you need to make a custom POSIX format you can look here: https://developer.ibm.com/articles/au-aix-posix/)
+  # or even better, use this POSIX Generator (courtesy of TopYuan): https://www.topyuan.top/posix
   time_zone: "AST4ADT,M3.2.0,M11.1.0"
   # Alternate Time Zone here.  Must also be POSIX format - it would be good to keep the time zone matched to any language substitution being used (ie. Korean to match Korea Standard Time)
   time_zone_alt: "KST-9"
