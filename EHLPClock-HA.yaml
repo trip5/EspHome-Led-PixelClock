@@ -3,7 +3,7 @@ substitutions:
   name: led-pixelclock-red
   friendly_name: Led-PixelClock-Red
   comment: "EHLPClock-HA from Trip5"
-  project_version: "2024.06.19"
+  project_version: "2024.06.26"
   project_name: Trip5.EspHomeLedPixelClock-HA
   waiting: " . EHLPClock-HA . ." # shows when waiting for time
   # Time zone must be POSIX format: (ie "KST-9" & "PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00" & "AST4ADT,M3.2.0,M11.1.0")
@@ -397,7 +397,6 @@ display:
     scroll_mode: continuous
     lambda: |-
       // Display the message if all conditions are met
-      // Display the message if all conditions are met
       if (id(my_time).now().is_valid()) {
         if ((id(message_alive_time) != 0) && (id(message_clock_time_count) >= id(message_clock_time))) {
           ESP_LOGD("main", "Showing Message");
@@ -729,7 +728,6 @@ button:
     name: "$friendly_name Restart"
     internal: true
     entity_category: diagnostic
-
 
 switch:
   - platform: template

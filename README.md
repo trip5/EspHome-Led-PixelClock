@@ -50,7 +50,7 @@ There's only one useable button on this clock but thanks to multi-click, we can 
 | -------------------- | ------------------------------- | ------------------|
 | Short-click          | Toggle date display mode on/off | Same              |
 | Double-click         | Toggle 12/24-hour mode on/off   | Same              |
-| Short-click, long-press | Toggle Time Zone Offset on/off (or Alt Time Zone) | Toggle Alt Time Zone |
+| Short-click, long-press | Toggle Time Zone Offset on/off | Toggle Alt Time Zone |
 | Long-press 2 seconds  | Show the clock's IP address (or other wifi status) | Toggle Time/Date Text Replacement |
 | Long-press 5 seconds | Toggle the Wifi Stop Seek on/off (see below) | Toggle Auto Replacement = Alt. Time |
 
@@ -88,21 +88,6 @@ Check the language_filters folder for some examples.  So far there is:
 
 Hopefully OnlineGDB hosts this [`Glyphs Helper`](https://www.onlinegdb.com/fork/zh1VszNT1) for a long while. See inside the yaml for more.
 
-### Alternate Time Zone
-
-This option is to allow displaying a Time Zone other than your "home" time zone.  It can be activated permanently or by using the "Auto Replacement = Alt. Time" mode.
-This allows you to see your home time zone and an alternate time zone in another language.  Now your clock is a bilingual time-traveler!
-
-Please note that the time zones MUST be in POSIX format instead of the usual Olsen type (`Asia/Seoul`).
-
-POSIX formats look like: `KST-9` or `PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00` or `AST4ADT,M3.2.0,M11.1.0`.
-
-They include daylight savings and time-switches in the formatting. So, there is no reliance on the ESPHome Olsen database to be current.
-You can view a lot of the time zones in the world in POSIX format [`here`](https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv) or
-[`here`](https://support.cyberdata.net/portal/en/kb/articles/010d63c0cfce3676151e1f2d5442e311).
-If you need to make a custom POSIX format you can look [`here`](https://developer.ibm.com/articles/au-aix-posix/) or even better, use this
-[`POSIX Generator`](https://www.topyuan.top/posix) courtesy of TopYuan.
-
 ### Time Sync
 
 Time can be synced to the Internet at configurable intervals between 1 - 24 hours, provided the wifi network is connected.
@@ -110,7 +95,8 @@ Time can be synced to the Internet at configurable intervals between 1 - 24 hour
 ## Non-HA Version
 
 The file [`EHLPClock.yaml`](EHLPClock.yaml) contains functions useful for using the clock as... mostly just a clock but with some power-saving functions.
-It includes all of the functions above as well as these below.
+It includes all of the functions above as well as these below.  This version has a WebUI which can be accessed via it's IP after connecting the clock to Wifi.
+So if you need a travel clock, this may be the ideal one for you.
 
 ### Time Zone Offset
 
@@ -156,7 +142,22 @@ If Stop Seek is enabled, the led will pulse on or off every 2 seconds. If connec
 ## Home Assistant Version
 
 The file [`EHLPClock-HA.yaml`](EHLPClock-HA.yaml) contains functions useful for using the clock with Home Assistant.
-It does not include the Time Zone Offset or Wifi Stop Seek but it does includes all of the functions below.
+It does not include the WebUI, Time Zone Offset, or Wifi Stop Seek but it does includes all of the functions below.
+
+### Alternate Time Zone
+
+This option is to allow displaying a Time Zone other than your "home" time zone.  It can be activated permanently or by using the "Auto Replacement = Alt. Time" mode.
+This allows you to see your home time zone and an alternate time zone in another language.  Now your clock is a bilingual time-traveler!
+
+Please note that the time zones MUST be in POSIX format instead of the usual Olsen type (`Asia/Seoul`).
+
+POSIX formats look like: `KST-9` or `PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00` or `AST4ADT,M3.2.0,M11.1.0`.
+
+They include daylight savings and time-switches in the formatting. So, there is no reliance on the ESPHome Olsen database to be current.
+You can view a lot of the time zones in the world in POSIX format [`here`](https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv) or
+[`here`](https://support.cyberdata.net/portal/en/kb/articles/010d63c0cfce3676151e1f2d5442e311).
+If you need to make a custom POSIX format you can look [`here`](https://developer.ibm.com/articles/au-aix-posix/) or even better, use this
+[`POSIX Generator`](https://www.topyuan.top/posix) courtesy of TopYuan.
 
 ### Service Call
 
@@ -206,6 +207,7 @@ I've found anything below 8kB available to the heap can cause constant crashes.
 
 | Date       | Release Notes    |
 | ---------- | ---------------- |
+| 2024.06.27 | Removed Alt TZ from main version |
 | 2024.06.19 | Fixed display times |
 | 2024.06.16 | Added Home Assistant version, major changes to main version, fixed time sync error |
 | 2024.06.09 | Replacement Interval fix |

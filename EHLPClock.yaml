@@ -3,18 +3,17 @@ substitutions:
   name: led-pixelclock-blue
   friendly_name: Led-PixelClock-Blue
   comment: "EHLPClock from Trip5"
-  project_version: "2024.06.19"
+  project_version: "2024.06.26"
   project_name: Trip5.EspHomeLedPixelClock
   waiting: " . EHLPClock . ." # shows when waiting for time
-  # Time zone must be POSIX format: (ie "KST-9" & "PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00" & "AST4ADT,M3.2.0,M11.1.0")
+  # Time zone can be Olsen type ("Asia/Seoul") # Check https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+  # or POSIX format: (ie "KST-9" & "PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00" & "AST4ADT,M3.2.0,M11.1.0")
   # Most can be viewed here: https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
   # or here: https://support.cyberdata.net/portal/en/kb/articles/010d63c0cfce3676151e1f2d5442e311
   # If you need to make a custom POSIX format you can look here: https://developer.ibm.com/articles/au-aix-posix/)
   # or even better, use this POSIX Generator (courtesy of TopYuan): https://www.topyuan.top/posix
   time_zone: "AST4ADT,M3.2.0,M11.1.0"
   # Alternate Time Zone here.  Must also be POSIX format - it would be good to keep the time zone matched to any language substitution being used (ie. Korean to match Korea Standard Time)
-  time_zone_alt: "KST-9"
-  time_zone_alt_name: "KST"
   scl_pin: GPIO4
   sda_pin: GPIO5
   clk_pin: GPIO14
@@ -100,16 +99,12 @@ font:
     glyphs:  |
       0123456789:.Sun MoTesWdhFriatAPJbpylgOcNvD오후전일월화수목금토요
     # Above covers Sun Mon Tues Wed Thu Fri Sat AM PM Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec as well as Korean Dates
-    # Because this font is ONLY used for time and date display, it should be the easiest to cut down
-    # If your clock is crashing, you can delete this section, go down to the display section, find and change message_font (3 times) to default_font
-    # And use the full glyphs list from message_font just below here
   - file: fonts/MatrixLight8X.ttf
     id: message_font
     size: 8
     glyphs:  |
-      ! "#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz°
-    # EHLPClock .DatenfWiONI:Sp
-    # Above should cover the system messages: "EHLPClock . / Date on / Date off" if you don't plan on using on using the HA service calls
+      EHLPClock .DatenfWiONI:Sp
+    # Above should cover the system messages: "EHLPClock . / Wifi Off / No Wifi / IP: / Date on / Date off / StopSeek / Seek..."
 time:
   - platform: sntp # use SNTP as a time source
     id: my_time
@@ -336,8 +331,6 @@ binary_sensor:
           - ON for at least 1s
         then:
           - switch.toggle: tzoffset_on_select
-      #...or if would you rather toggle Alt Time Zone:
-      #    - switch.toggle: tz_alt_select
       #Hold 2s will show the IP (or other wifi status)
       - timing:
           - ON for at least 2s
@@ -565,19 +558,6 @@ globals:
     type: int
     restore_value: false
     initial_value: '0'
-# Alt Time Zone variable
-  - id: tz_alt
-    type: bool
-    restore_value: true
-    initial_value: 'false'
-  - id: tz_alt_auto
-    type: bool
-    restore_value: false
-    initial_value: 'false'
-  - id: auto_replace_tz_alt
-    type: bool
-    restore_value: true
-    initial_value: 'false'
 
 button:
   - platform: restart
@@ -662,7 +642,6 @@ switch:
     turn_on_action:
         lambda: |-
           ESP_LOGD("main", "Replace Mode On");
-          id(auto_replace_tz_alt_select).turn_off();
           id(replace_mode) = true;
           id(replace_mode_auto_select).turn_on();
     turn_off_action:
@@ -754,73 +733,6 @@ switch:
             id(message_alive_time) = 1;
             id(message_display_time) = 1;
             id(message_clock_time) = 0;
-# Alt Time Zone selector / activator
-  - platform: template
-    name: "$friendly_name Alternate Time ($time_zone_alt_name)"
-    id: tz_alt_select
-    restore_mode: RESTORE_DEFAULT_OFF
-    lambda: |-
-      if (id(tz_alt)) {
-        return true;
-      } else {
-        return false;
-      }
-    turn_on_action:
-        lambda: |-
-          ESP_LOGD("main", "Alt Time Zone On");
-          id(auto_replace_tz_alt_select).turn_off();
-          id(tz_alt) = true;
-          id(tz_alt_auto_select).turn_on();
-    turn_off_action:
-        lambda: |-
-          ESP_LOGD("main", "Alt Time Zone Off");
-          id(tz_alt) = false;
-          id(tz_alt_auto_select).turn_off();
-  - platform: template
-    id: tz_alt_auto_select
-    restore_mode: DISABLED
-    internal: true
-    turn_on_action:
-        lambda: |-
-          ESP_LOGD("main", "Alt Time Zone Auto On");
-          id(tz_alt_auto) = true;
-          id(my_time)->set_timezone("$time_zone_alt");
-          id(my_time_ds)->set_timezone("$time_zone_alt");
-          id(my_time)->call_setup();
-    turn_off_action:
-        lambda: |-
-          ESP_LOGD("main", "Alt Time Zone Auto Off");
-          id(tz_alt_auto) = false;
-          id(my_time)->set_timezone("$time_zone");
-          id(my_time_ds)->set_timezone("$time_zone");
-          id(my_time)->call_setup();
-  - platform: template
-    name: "$friendly_name Auto Replacement = Alt. Time"
-    id: auto_replace_tz_alt_select
-    restore_mode: RESTORE_DEFAULT_OFF
-    lambda: |-
-      if (id(auto_replace_tz_alt)) {
-        return true;
-      } else {
-        return false;
-      }
-    turn_on_action:
-        lambda: |-
-          ESP_LOGD("main", "Auto Replacement = Alt. Time On");
-          auto call = id(replace_interval_select).make_call();
-          call.set_value(1);
-          call.perform();
-          id(replace_mode_select).turn_off();
-          id(tz_alt_select).turn_off();
-          id(auto_replace_tz_alt) = true;
-    turn_off_action:
-        lambda: |-
-          ESP_LOGD("main", "Auto Replacement Mode = Alt. Time Off");
-          auto call = id(replace_interval_select).make_call();
-          call.set_value(0);
-          call.perform();
-          id(auto_replace_tz_alt) = false;
-          id(tz_alt_auto_select).turn_off();
 
 number:
   - platform: template
@@ -884,9 +796,6 @@ number:
           id(replace_interval) = x;
           ESP_LOGD("main", "Auto Replacement Interval: %d", id(replace_interval));
           if (id(replace_interval) > 0) {
-            if (id(auto_replace_tz_alt) == true) {
-              id(tz_alt_select).turn_off();
-            }
             if (id(replace_mode) == true) {
               id(replace_mode_select).turn_on();
             }
