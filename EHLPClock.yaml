@@ -3,7 +3,7 @@ substitutions:
   name: led-pixelclock-blue
   friendly_name: Led-PixelClock-Blue
   comment: "EHLPClock from Trip5"
-  project_version: "2024.06.26"
+  project_version: "2024.06.19"
   project_name: Trip5.EspHomeLedPixelClock
   waiting: " . EHLPClock . ." # shows when waiting for time
   # Time zone can be Olsen type ("Asia/Seoul") # Check https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
@@ -103,7 +103,7 @@ font:
     id: message_font
     size: 8
     glyphs:  |
-      EHLPClock .DatenfWiONI:Sp
+      0123456789EHLPClock .DatenfWiONI:Sp
     # Above should cover the system messages: "EHLPClock . / Wifi Off / No Wifi / IP: / Date on / Date off / StopSeek / Seek..."
 time:
   - platform: sntp # use SNTP as a time source
@@ -362,7 +362,7 @@ display:
       // Display the message if all conditions are met
       if (id(my_time).now().is_valid()) {
         if ((id(message_alive_time) != 0) && (id(message_clock_time_count) >= id(message_clock_time))) {
-          ESP_LOGD("main", "Showing Message from Home Asssistant Service");
+          ESP_LOGD("main", "Showing Message");
           id(message_display_time_count) += 1;
           id(message_alive_time_count) += 1;
           std::string message_text = id(message);
@@ -644,6 +644,10 @@ switch:
           ESP_LOGD("main", "Replace Mode On");
           id(replace_mode) = true;
           id(replace_mode_auto_select).turn_on();
+
+          auto call = id(replace_interval_select).make_call();
+          call.set_value(0);
+          call.perform();
     turn_off_action:
         lambda: |-
           ESP_LOGD("main", "Replace Mode Off");
@@ -797,7 +801,7 @@ number:
           ESP_LOGD("main", "Auto Replacement Interval: %d", id(replace_interval));
           if (id(replace_interval) > 0) {
             if (id(replace_mode) == true) {
-              id(replace_mode_select).turn_on();
+              id(replace_mode_select).turn_off();  // was on
             }
           }
   - platform: template
