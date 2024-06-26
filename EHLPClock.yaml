@@ -644,7 +644,6 @@ switch:
           ESP_LOGD("main", "Replace Mode On");
           id(replace_mode) = true;
           id(replace_mode_auto_select).turn_on();
-
           auto call = id(replace_interval_select).make_call();
           call.set_value(0);
           call.perform();
@@ -747,6 +746,7 @@ number:
     step: 1
     min_value: 0
     max_value: 15
+    initial_value: 1
     mode: slider
     set_action:
       then:
@@ -761,6 +761,7 @@ number:
     step: 1
     min_value: 1
     max_value: 60
+    initial_value: 8
     mode: box
     unit_of_measurement: seconds
     set_action:
@@ -776,6 +777,7 @@ number:
     step: 1
     min_value: 1
     max_value: 60
+    initial_value: 2
     mode: box
     unit_of_measurement: seconds
     set_action:
