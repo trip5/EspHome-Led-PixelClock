@@ -42,6 +42,12 @@ Ideally, this would look a lot prettier than it does but there's not a lot I can
 
 ![image](./images/EHLPC_Screenshot.png)
 
+### Home Assistant
+
+Both versions of the YAML files will connect to the Home Assistant API if available.  Both can be controlled via device integration in HA.
+
+The Non-HA version will function completely without Home Assistant and can still be controlled by accessing the WebUI via its IP or mDNS address.
+
 ### Button Functions
 
 There's only one useable button on this clock but thanks to multi-click, we can use it for a few functions.
@@ -96,7 +102,7 @@ Time can be synced to the Internet at configurable intervals between 1 - 24 hour
 
 The file [`EHLPClock.yaml`](EHLPClock.yaml) contains functions useful for using the clock as... mostly just a clock but with some power-saving functions.
 It includes all of the functions above as well as these below.  This version has a WebUI which can be accessed via it's IP after connecting the clock to Wifi.
-So if you need a travel clock, this may be the ideal one for you.
+So if you need a travel clock, this may be the ideal one for you.  It can still be controlled by Home Assistant as well but is not dependent on it to function.
 
 ### Time Zone Offset
 
@@ -179,7 +185,7 @@ template: !include template.yaml
 Anything in `configuration.yaml` under the `template:` heading must now be moved to `template.yaml`. Take a quick look [here](https://community.home-assistant.io/t/how-do-i-setup-template-trigger-sensor-in-a-splitting-config/718626/) for some examples on an easy way to format `template.yaml`.
 
 The file [`template.yaml`](template.yaml) contains several examples how to add sensors that can be automatically shown by the clock.
-I personally use only one sensor in my Home Assistant and 2 clocks in the house get data from the same sensor but you can (of course) create a sensor for each indivudal clock.
+I personally use only one sensor in my Home Assistant and 2 clocks in the house get data from the same sensor but you can (of course) create a sensor for each individual clock.
 
 ## Crashes?
 
