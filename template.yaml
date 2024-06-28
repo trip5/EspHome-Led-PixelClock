@@ -30,4 +30,4 @@
         0: "₿ ₩{{ (states('sensor.bitcoin_price')|int/1000000) | round(0) | default('NA') }}M"
         1: >
           Out {{ hourly["weather.openweathermap_hourly"].forecast[0].temperature | round(0) | default('NA') }}°C
-        2: "In {{ states('sensor.michael_s_room_temperature') | round(1) | default('NA') }}°C"
+        2: "In {{ states('sensor.room_temperature') | round(1) | default('NA') }}°C"
