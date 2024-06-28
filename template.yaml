@@ -6,8 +6,8 @@
       state: "OK"
       attributes:
         # The numbered attributes (0 to 9) are info screens
-        0: "₿ ₩{{ (states('sensor.bitcoin_price')|int/1000000)|round(0) }}M"
-        1: "In {{ states('sensor.room_temperature')|round(1) }}°C"
+        0: "₿ ₩{{ (states('sensor.bitcoin_price')|int/1000000) | round(0) | default('NA') }}M"
+        1: "In {{ states('sensor.room_temperature') | round(1) | default('NA') }}°C"
 
 # This style is for a sensor that relies on at least one service call (ie. for weather) - you can still use simple/derivative sensors
 
@@ -27,7 +27,7 @@
       state: "OK"
       attributes:
         # The numbered attributes (0 to 9) are info screens
-        0: "₿ ₩{{ (states('sensor.bitcoin_price')|int/1000000)|round(0) }}M"
+        0: "₿ ₩{{ (states('sensor.bitcoin_price')|int/1000000) | round(0) | default('NA') }}M"
         1: >
-          Out {{ hourly["weather.openweathermap_hourly"].forecast[0].temperature | round(0) }}°C
-        2: "In {{ states('sensor.room_temperature')|round(1) }}°C"
+          Out {{ hourly["weather.openweathermap_hourly"].forecast[0].temperature | round(0) | default('NA') }}°C
+        2: "In {{ states('sensor.michael_s_room_temperature') | round(1) | default('NA') }}°C"
