@@ -567,7 +567,8 @@ button:
     entity_category: diagnostic
   - platform: template
     id: display_ip
-    name: "$friendly_name Display IP Address"
+    name: "Display IP Address"
+    internal: true
     entity_category: diagnostic
     on_press:
       - if:
