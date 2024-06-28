@@ -3,7 +3,7 @@ substitutions:
   name: led-pixelclock-blue
   friendly_name: Led-PixelClock-Blue
   comment: "EHLPClock from Trip5"
-  project_version: "2024.06.19"
+  project_version: "2024.06.29"
   project_name: Trip5.EspHomeLedPixelClock
   waiting: " . EHLPClock . ." # shows when waiting for time
   # Time zone can be Olsen type ("Asia/Seoul") # Check https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
@@ -168,16 +168,17 @@ api:
 mdns:
   disabled: false # needs to be on to connect to HA
 
-# Enable logging (and stops the various sensors/switches from spamming the log) - if you need more data, change to DEBUG
+# Enable logging (and stops the various sensors/switches from spamming the log)
 # Note that increasing the level uses up memory (which this device has very little available) and may cause errors and/or crashing
 logger:
   level: DEBUG
   logs:
     sensor: ERROR
-    text_sensor: ERROR
-    switch: ERROR
-    light: ERROR
-    number: ERROR
+    text_sensor: NONE
+    switch: NONE
+    light: NONE
+    number: NONE
+    rtttl: NONE
 
 ota:
   - platform: esphome
@@ -390,7 +391,7 @@ display:
           std::tm *tz1time_astm = localtime(&tz1time);
           char display_tmdt[20];
           // check if the date should be displayed
-          if ((id(date_display_time_count) >= (id(time_display_time))) && (id(date_display_mode) != false)) {
+          if ((id(time_display_count) >= (id(time_display_time))) && (id(date_display_mode) != false)) {
             id(date_display_count) += 1;
             // if date_formatA is on, display it for 50% of the time first, after the 1st...
             if ((id(date_A_mode) == true) && (id(date_display_count) <= (id(date_display_time) / 2))) {
@@ -412,7 +413,7 @@ display:
             }
           } else {
             id(date_display_count) = 0;
-            id(date_display_time_count) += 1;
+            id(time_display_count) += 1;
             // choose which time format to display
             if (id(hour12_mode) == true) {
               strftime(display_tmdt, 20, "$time_format12", tz1time_astm);
@@ -428,8 +429,8 @@ display:
           }
           // print the date / time
           it.printf((32 / 2), (8 / 2), id(default_font), TextAlign::CENTER, "%s", display_tmdt);
-          if (((id(date_display_count) >= id(date_display_time)) && (id(date_display_mode) != false)) || ((id(date_display_time_count) >= id(time_display_time)) && (id(date_display_mode) == false))) {
-            id(date_display_time_count) = 0;
+          if (((id(date_display_count) >= id(date_display_time)) && (id(date_display_mode) != false)) || ((id(time_display_count) >= id(time_display_time)) && (id(date_display_mode) == false))) {
+            id(time_display_count) = 0;
             // check if Replace Interval is active, count or reset, when date display is finished - or after the interval, depending
             if (id(replace_interval) > 0) {
               id(replace_interval_count) += 1;
@@ -530,7 +531,7 @@ globals:
     type: int
     restore_value: true
     initial_value: '4'
-  - id: date_display_time_count
+  - id: time_display_count
     type: int
     restore_value: false
     initial_value: '0'
@@ -563,12 +564,10 @@ button:
   - platform: restart
     id: restart_button
     name: "$friendly_name Restart"
-    internal: true
     entity_category: diagnostic
   - platform: template
     id: display_ip
     name: "$friendly_name Display IP Address"
-    internal: true
     entity_category: diagnostic
     on_press:
       - if:
