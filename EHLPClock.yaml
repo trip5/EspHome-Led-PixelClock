@@ -598,11 +598,7 @@ switch:
     id: hour12_select
     restore_mode: RESTORE_DEFAULT_OFF
     lambda: |-
-      if (id(hour12_mode)) {
-        return true;
-      } else {
-        return false;
-      }
+      return id(hour12_mode);
     turn_on_action:
         lambda: |-
           ESP_LOGD("main", "12 Hour Mode On");
@@ -616,11 +612,7 @@ switch:
     id: date_A_select
     restore_mode: RESTORE_DEFAULT_OFF
     lambda: |-
-      if (id(date_A_mode)) {
-        return true;
-      } else {
-        return false;
-      }
+      return id(date_A_mode);
     turn_on_action:
         lambda: |-
           ESP_LOGD("main", "Date A Mode On");
@@ -634,11 +626,7 @@ switch:
     id: replace_mode_select
     restore_mode: RESTORE_DEFAULT_OFF
     lambda: |-
-      if (id(replace_mode)) {
-        return true;
-      } else {
-        return false;
-      }
+      return id(replace_mode);
     turn_on_action:
         lambda: |-
           ESP_LOGD("main", "Replace Mode On");
@@ -669,11 +657,7 @@ switch:
     id: tzoffset_on_select
     restore_mode: RESTORE_DEFAULT_OFF
     lambda: |-
-      if (id(tzoffset_on)) {
-        return true;
-      } else {
-        return false;
-      }
+      return id(tzoffset_on);
     turn_on_action:
         lambda: |-
           ESP_LOGD("main", "TZ Offset On");
@@ -687,11 +671,7 @@ switch:
     id: date_mode_select
     restore_mode: RESTORE_DEFAULT_OFF
     lambda: |-
-      if (id(date_display_mode)) {
-        return true;
-      } else {
-        return false;
-      }
+      return id(date_display_mode);
     turn_on_action:
         - lambda: |-
             ESP_LOGD("main", "Date on");
@@ -713,11 +693,7 @@ switch:
     id: wifi_stop_seek_select
     restore_mode: RESTORE_DEFAULT_OFF
     lambda: |-
-      if (id(wifi_stop_seek)) {
-        return true;
-      } else {
-        return false;
-      }
+      return id(wifi_stop_seek);
     turn_on_action:
         - delay: 1s
         - lambda: |-

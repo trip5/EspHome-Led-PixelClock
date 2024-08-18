@@ -734,11 +734,7 @@ switch:
     id: hour12_select
     restore_mode: RESTORE_DEFAULT_OFF
     lambda: |-
-      if (id(hour12_mode)) {
-        return true;
-      } else {
-        return false;
-      }
+      return id(hour12_mode);
     turn_on_action:
         lambda: |-
           ESP_LOGD("main", "12 Hour Mode On");
@@ -752,11 +748,7 @@ switch:
     id: date_A_select
     restore_mode: RESTORE_DEFAULT_OFF
     lambda: |-
-      if (id(date_A_mode)) {
-        return true;
-      } else {
-        return false;
-      }
+      return id(date_A_mode);
     turn_on_action:
         lambda: |-
           ESP_LOGD("main", "Date A Mode On");
@@ -770,11 +762,7 @@ switch:
     id: replace_mode_select
     restore_mode: RESTORE_DEFAULT_OFF
     lambda: |-
-      if (id(replace_mode)) {
-        return true;
-      } else {
-        return false;
-      }
+      return id(replace_mode);
     turn_on_action:
         lambda: |-
           ESP_LOGD("main", "Replace Mode On");
@@ -803,11 +791,7 @@ switch:
     id: date_mode_select
     restore_mode: RESTORE_DEFAULT_OFF
     lambda: |-
-      if (id(date_display_mode)) {
-        return true;
-      } else {
-        return false;
-      }
+      return id(date_display_mode);
     turn_on_action:
         - lambda: |-
             ESP_LOGD("main", "Date on");
@@ -829,11 +813,7 @@ switch:
     id: ha_sensor_data_all_select
     restore_mode: RESTORE_DEFAULT_OFF
     lambda: |-
-      if (id(ha_sensor_data_all)) {
-        return true;
-      } else {
-        return false;
-      }
+      return id(ha_sensor_data_all);
     turn_on_action:
         lambda: |-
           ESP_LOGD("main", "HA Sensors Data All On");
@@ -847,11 +827,7 @@ switch:
     id: ha_sensor_data_stop_select
     restore_mode: RESTORE_DEFAULT_OFF
     lambda: |-
-      if (id(ha_sensor_data_stop)) {
-        return true;
-      } else {
-        return false;
-      }
+      return id(ha_sensor_data_stop);
     turn_on_action:
         lambda: |-
           ESP_LOGD("main", "HA Sensors Data Stop On");
@@ -866,11 +842,7 @@ switch:
     id: tz_alt_select
     restore_mode: RESTORE_DEFAULT_OFF
     lambda: |-
-      if (id(tz_alt)) {
-        return true;
-      } else {
-        return false;
-      }
+      return id(tz_alt);
     turn_on_action:
         lambda: |-
           ESP_LOGD("main", "Alt Time Zone On");
@@ -905,11 +877,7 @@ switch:
     id: auto_replace_tz_alt_select
     restore_mode: RESTORE_DEFAULT_OFF
     lambda: |-
-      if (id(auto_replace_tz_alt)) {
-        return true;
-      } else {
-        return false;
-      }
+      return id(auto_replace_tz_alt);
     turn_on_action:
         lambda: |-
           ESP_LOGD("main", "Auto Replacement = Alt. Time On");
