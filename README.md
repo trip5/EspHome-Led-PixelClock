@@ -145,6 +145,21 @@ You can enable or disable this mode by holding the button for 5 seconds to toggl
 While the clock is connecting to wifi or while in hotspot mode, the blue LED will pulse on and off. In regular mode, the LED will turn on or off will be every 1 second.
 If Stop Seek is enabled, the led will pulse on or off every 2 seconds. If connected to Wifi or Stop Seek (as above) is active, the LED will turn off completely.
 
+## Special Note Regarding the WebUI's Internet Dependence
+
+ESPHome devices usually rely on the Internet to be available to access a Javascript file that formats the web UI.
+Specifically, the device will look for https://oi.esphome.io/v2/www.js but this file can be made available on-device with this included in the `webserver:` section.
+
+```
+  local: true
+```
+If you don't mind the device's WebUI being dependent on the Internet, you could remove this line.
+You could consider hosting the file on another machine in-house, too by using something like:
+```
+  js_include: ""
+  js_url: "http://192.168.1.1/esphome-www/www.js"
+```
+
 ## Home Assistant Version
 
 The file [`EHLPClock-HA.yaml`](EHLPClock-HA.yaml) contains functions useful for using the clock with Home Assistant.
@@ -213,6 +228,7 @@ I've found anything below 8kB available to the heap can cause constant crashes.
 
 | Date       | Release Notes    |
 | ---------- | ---------------- |
+| 2024.08.22 | Added `local: true` to non-HA version |
 | 2024.06.29 | Removed Alt TZ from main version, minor fixes |
 | 2024.06.19 | Fixed display times |
 | 2024.06.16 | Added Home Assistant version, major changes to main version, fixed time sync error |
