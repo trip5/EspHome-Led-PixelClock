@@ -228,6 +228,22 @@ text_sensor:
     update_interval: never
     internal: true
     filters:
+      - lambda: |-
+          // Korean generally puts the 오후/오전 before the time, so let's just use a different format entirely "%p%l%M" (PM1:25) and run a substitute on it
+          if (id(hour12_mode) == 1) {
+            int offset = 0;
+            if (id(tzoffset_on) != 0) {
+              offset = (int)(60 * 60 * (id(tzoffset)));
+            }
+            std::time_t tz1time = (id(my_time).now().timestamp + offset);
+            std::tm *tz1time_astm = localtime(&tz1time);
+            char display_tmdt[20];
+            strftime(display_tmdt, 20, "%p%l:%M", tz1time_astm);
+            std::string tmdt(display_tmdt);
+            return tmdt;
+          } else {
+            return x;
+          }
       - append: ""
       - prepend: ""
       - substitute:
