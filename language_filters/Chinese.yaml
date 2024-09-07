@@ -23,6 +23,13 @@ text_sensor:
       - append: ""
       - prepend: ""
       - substitute:
+          // Chinese generally puts the 上午/下午 before the time, so let's just use a different format entirely "%p%l%M" (PM1:25) and run a substitute on it
+          if (id(hour12_mode) == 1) {
+            int offset = 0;
+            // delete next 3 lines if using the HA version...
+            if (id(tzoffset_on) != 0) {
+              offset = (int)(60 * 60 * (id(tzoffset)));
+            }
         - "AM -> 上午"
         - "PM -> 下午"
   - platform: template
