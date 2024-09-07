@@ -30,6 +30,15 @@ text_sensor:
             if (id(tzoffset_on) != 0) {
               offset = (int)(60 * 60 * (id(tzoffset)));
             }
+            std::time_t tz1time = (id(my_time).now().timestamp + offset);
+            std::tm *tz1time_astm = localtime(&tz1time);
+            char display_tmdt[20];
+            strftime(display_tmdt, 20, "%p%l:%M", tz1time_astm);
+            std::string tmdt(display_tmdt);
+            return tmdt;
+          } else {
+            return x;
+          }
         - "AM -> 上午"
         - "PM -> 下午"
   - platform: template
