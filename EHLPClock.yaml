@@ -6,6 +6,7 @@ substitutions:
   project_version: "2024.06.29"
   project_name: Trip5.EspHomeLedPixelClock
   waiting: " . EHLPClock . ." # shows when waiting for time
+
   # Time zone can be Olsen type ("Asia/Seoul") # Check https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
   # or POSIX format: (ie "KST-9" & "PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00" & "AST4ADT,M3.2.0,M11.1.0")
   # Most can be viewed here: https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
@@ -14,15 +15,7 @@ substitutions:
   # or even better, use this POSIX Generator (courtesy of TopYuan): https://www.topyuan.top/posix
   time_zone: "AST4ADT,M3.2.0,M11.1.0"
   # Alternate Time Zone here.  Must also be POSIX format - it would be good to keep the time zone matched to any language substitution being used (ie. Korean to match Korea Standard Time)
-  scl_pin: GPIO4
-  sda_pin: GPIO5
-  clk_pin: GPIO14
-  mosi_pin: GPIO13
-  cs_pin: GPIO15
-  status_led_pin: GPIO2
-  download_button_pin: GPIO0
-  rotation_pin: GPIO16
-  
+
   # time and date formats: https://esphome.io/components/time/?highlight=strftime#strftime and https://strftime.org/
   # time_format: "%H:%M" (13:25) / "%H:%M:%S" (13:25:59) / "%I:%M%p" (01:25PM) / "%l:%M%p" (1:25PM)
   time_format12: "%l:%M%p"
@@ -33,6 +26,18 @@ substitutions:
   date_formatA: "%a" # Mon
   # Special note that ESPHome can't seem to use any locale for time other than English. In the text_sensors section, you can find filters that allow substitutions.
   # Please be sure to add those needed characters to the glyphs as well, or those special characters will not be displayed!
+
+  # Pins for Display
+  clk_pin: GPIO14
+  mosi_pin: GPIO13
+  cs_pin: GPIO15
+  # Pins for TM
+  scl_pin: GPIO4
+  sda_pin: GPIO5
+  # Other Pins
+  status_led_pin: GPIO2
+  download_button_pin: GPIO0
+  rotation_pin: GPIO16
 
 esphome:
   name: $name

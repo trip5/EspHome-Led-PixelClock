@@ -6,6 +6,7 @@ substitutions:
   project_version: "2024.06.29"
   project_name: Trip5.EspHomeLedPixelClock-HA
   waiting: " . EHLPClock-HA . ." # shows when waiting for time
+
   # Time zone must be POSIX format: (ie "KST-9" & "PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00" & "AST4ADT,M3.2.0,M11.1.0")
   # Most can be viewed here: https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
   # or here: https://support.cyberdata.net/portal/en/kb/articles/010d63c0cfce3676151e1f2d5442e311
@@ -15,14 +16,6 @@ substitutions:
   # Alternate Time Zone here.  Must also be POSIX format - it would be good to keep the time zone matched to any language substitution being used (ie. Korean to match Korea Standard Time)
   time_zone_alt: "KST-9"
   time_zone_alt_name: "KST"
-  scl_pin: GPIO4
-  sda_pin: GPIO5
-  clk_pin: GPIO14
-  mosi_pin: GPIO13
-  cs_pin: GPIO15
-  status_led_pin: GPIO2
-  download_button_pin: GPIO0
-  rotation_pin: GPIO16
 
   # time and date formats: https://esphome.io/components/time/?highlight=strftime#strftime and https://strftime.org/
   # time_format: "%H:%M" (13:25) / "%H:%M:%S" (13:25:59) / "%I:%M%p" (01:25PM) / "%l:%M%p" (1:25PM)
@@ -37,6 +30,18 @@ substitutions:
 
   # This is the sensor name from your Home Assistant configuration
   ha_sensor_data: sensor.led_pixelclock_data
+
+  # Pins for Display
+  clk_pin: GPIO14
+  mosi_pin: GPIO13
+  cs_pin: GPIO15
+  # Pins for I2C RTC
+  scl_pin: GPIO4
+  sda_pin: GPIO5
+  # Other Pins
+  status_led_pin: GPIO2
+  download_button_pin: GPIO0
+  rotation_pin: GPIO16
 
 esphome:
   name: $name
