@@ -10,7 +10,7 @@ Due to memory constraints on the ESP8266 these clocks use, I've decided to split
 
 #### Note: ESPHome must be version 2023.11.0 or higher!
 
-## Dot Matrix Clock
+## LED Matrix Clock
 
 ![image](./images/DotMatrixClock.jpg)
 
@@ -32,15 +32,9 @@ This is ESPHome, so it's not pretty but very functional.  You should set your wi
 If using this device on a network outside your usual, ESPHome will, after 10 seconds (set by the YAML), give up trying to connect to its "home" network and enter AP mode.
 You should then connect to the hotspot (with a mobile phone) and then go to 192.168.4.1 in a browser to select which local wifi network you would like it to connect to.
 The clock will display its IP address on boot and also by holding down the set button for more than 1 second. When returning home, you will have to go through this process again.
-Be sure if you are using this clock as a travel clock to NOT use Home Assistant as a time source (it doesn't by default anyways).
+Be sure if you are using this clock as a travel clock to NOT use Home Assistant as a time source (the non-HA version uses SNTP by default).
 
 There does appear to be some errors with "Component preferences took a long time for an operation" but it only happens when saving persistent variables to flash and doesn't seem to affect functionality, unless you try to change a variable during this moment.
-
-### Screenshot
-
-Ideally, this would look a lot prettier than it does but there's not a lot I can with the default ESPHome WebUI.
-
-![image](./images/EHLPC_Screenshot.png)
 
 ### Home Assistant
 
@@ -97,6 +91,7 @@ Hopefully OnlineGDB hosts this [`Glyphs Helper`](https://www.onlinegdb.com/fork/
 ### Time Sync
 
 Time can be synced to the Internet at configurable intervals between 1 - 24 hours, provided the wifi network is connected.
+In the HA version, this is selectable.  In the non-HA versions, this option is not selectable in the UI.  It must be fixed in the YAML.
 
 ## Non-HA Version
 
@@ -132,30 +127,41 @@ The hotspot will activate after 10 seconds (lowered from 60 seconds which is ESP
 
 You can enable or disable this mode by holding the button for 5 seconds to toggle the function. The wifi will be turned on again if it has been turned off.
 
-#### Power Consumption (measured with Large Blue LED Clock, 2023.11.16 Version)
+### Power Consumption
 
-| Status / Mode           | Power usage (24 hours) |
-| ----------------------- | ---------------------- |
-| Connected               | 3000 mAh               |
-| Stop Seek Off & No Wifi | 3200 mAh               |
-| Stop Seek On & Wifi Off | 1600 mAh               |
+Measured with Large Blue LED, 2024.10.29 Version, minimum 1 hour each mode
+
+| Status: Modes                         | Power usage per hour |
+| --------------------------------------| -------------------- |
+| Connected: Display On - Brightness 13 | 424 mA |
+| Connected: Display On - Brightness 0  | 93 mA |
+| No Wifi: Stop Seek Off - Brightness 0 | 97 mA |
+| No Wifi: Stop Seek On - Brightness 0  | < 100 mA * |
+
+My USB power tool refused to count when the current was below 0.1 A. I'll redo these tests after I get a better tool.
+
+Previous tests had measured 66mA with Stop Seek On and the display on... which may have been a faulty test because it was done with the same tool.
 
 ### LED Output
 
-While the clock is connecting to wifi or while in hotspot mode, the blue LED will pulse on and off. In regular mode, the LED will turn on or off will be every 1 second.
-If Stop Seek is enabled, the led will pulse on or off every 2 seconds. If connected to Wifi or Stop Seek (as above) is active, the LED will turn off completely.
+While the clock is attempting to connect to wifi or while in hotspot mode, the blue LED will pulse on and off every 1 second.
 
-## Special Note Regarding the WebUI's Internet Dependence
+If Stop Seek is enabled, then the LED will fade on or off every 2 seconds during connection attempts.
+
+If connected to Wifi or Stop Seek has activated, the LED will turn off completely.
+
+### Special Note Regarding the WebUI's Internet Dependence
 
 ESPHome devices usually rely on the Internet to be available to access a Javascript file that formats the web UI.
 Specifically, the device will look for https://oi.esphome.io/v2/www.js but this file can be made available on-device with this included in the `webserver:` section.
+This is added to the non-HA version by default.
 
-```
+```yaml
   local: true
 ```
 If you don't mind the device's WebUI being dependent on the Internet, you could remove this line.
 You could consider hosting the file on another machine in-house, too by using something like:
-```
+```yaml
   js_include: ""
   js_url: "http://192.168.1.1/esphome-www/www.js"
 ```
@@ -163,7 +169,7 @@ You could consider hosting the file on another machine in-house, too by using so
 ## Home Assistant Version
 
 The file [`EHLPClock-HA.yaml`](EHLPClock-HA.yaml) contains functions useful for using the clock with Home Assistant.
-It does not include the WebUI, Time Zone Offset, or Wifi Stop Seek but it does includes all of the functions below.
+It does not include the WebUI, Time Zone Offset, Wifi Stop Seek, or Display Off but it does includes all of the functions below.
 
 ### Alternate Time Zone
 
@@ -184,7 +190,7 @@ If you need to make a custom POSIX format you can look [`here`](https://develope
 
 ![image](./images/EHLPC_Home_Assistant_message.png)
 
-This example will send a message that will display for 3 seconds before reverting to the clock for 3 seconds, and repeat until 20 seconds is finished (if it is displaying the message, it will finish that last 3 seconds). It may interrupt any screen currently being displayed and will return to it after the display time is finished, show the clock/date screen for the specified time, and repeat until the alive time is finished (which includes both the service screen and clock/date screens).  Everything is measured in seconds.
+This example will send a message that will display for 3 seconds before reverting to the clock for 5 seconds, and repeat until 20 seconds is finished (if it is displaying the message, it will finish that last 3 seconds). It may interrupt any screen currently being displayed and will return to it after the display time is finished, show the clock/date screen for the specified time, and repeat until the alive time is finished (which includes both the service screen and clock/date screens).  Everything is measured in seconds.
 
 ### Template Sensors
 
@@ -193,7 +199,7 @@ They are all treated as sensors, similarly as my [ESPHome-eInk-Boards](https://g
 
 Put something like this in your `configuration.yaml`:
 
-```
+```yaml
 template: !include template.yaml
 ```
 
@@ -210,7 +216,7 @@ So I usually flash via USB cable.  To save memory, it is probably a good idea to
 If your clock is constantly crashing, you can first try eliminating the message_font (read the notes in the yaml). 
 Then, add this to you sensor section and check how much free memory the ESP has to work with.
 
-````
+```yaml
 sensor:
   - platform: template
     name: "ESP Free Heap"
@@ -221,13 +227,14 @@ sensor:
     update_interval: 5s
     entity_category: diagnostic
     icon: mdi:chip
-````
+```
 I've found anything below 8kB available to the heap can cause constant crashes.
 
 ## Update History
 
 | Date       | Release Notes    |
 | ---------- | ---------------- |
+| 2024.10.29 | Some bug fixes, improvements to code, added hard-coded variables in regular version, should free up more memory for fonts |
 | 2024.08.22 | Added `local: true` to non-HA version |
 | 2024.06.29 | Removed Alt TZ from main version, minor fixes |
 | 2024.06.19 | Fixed display times |
@@ -243,17 +250,17 @@ I've found anything below 8kB available to the heap can cause constant crashes.
 Some people would prefer to use Tasmota.  I did use Tasmota at first but I found it a bit lacking, namely that it doesn't seem possible to replace the default font.  I made some notes that I'll include here:
 
 First, using [`Gitpod`](https://gitpod.io/#https://github.com/arendst/Tasmota/tree/master), add these lines to user_config_override.h:
-````
+```cpp
 #define USE_DISPLAY_MAX7219_MATRIX
 #define USE_I2C
 #define USE_DS3231
 #define USE_RTC_CHIPS
-````
+```
 
 Then run:
-````
+```
 platformio run -e tasmota-display
-````
+```
 
 The GPIOs:
 | Function | PIN  |
@@ -268,11 +275,11 @@ The GPIOs:
 | SWITCH 2 (Rotation Sensor) | GPIO16 |
 
 Some useful console commands (it'll at least get you a functional display, though you may need to reset the power first):
-````
+```
 Backlog DisplayWidth 32; DisplayHeight 8; DisplayModel 19; DisplayMode 0; DisplayRotate 1
 
 Backlog Power 1; DisplayClock 1
-````
+```
 
 ## Useful Links
 
@@ -288,3 +295,20 @@ The original creator if this clock (unsure if the Chinese Manufacturer appears t
 
 Perhaps the same, perhaps not, TopYuan also developed a firmware for an LED Matrix clock (but closed-source, unfortunately): https://github.com/yuan910715/Esp8266_Wifi_Matrix_Clock
 
+### Repair
+
+My Blue LED Clock had a dim pixel and a dead pixel on 2 separate sections of the matrix.  The LED matrixes are 8x8 pixels using a common cathode.
+
+The larger clocks use a 1088AB which can be found on Aliexpress here: https://vi.aliexpress.com/item/1005007029570407.html
+
+The smaller clocks use 788AB (788AS?) which can be found from the same seller here: https://vi.aliexpress.com/item/1005007029678274.html
+
+Unfortunately it seems they can only be bought in bulk of 10 to 100 quantity...
+
+Be sure to get the CC models only and do not get the mixed color models as they have more pins.
+
+### My Other Clocks
+
+EspHome-Led-Clock: https://github.com/trip5/EspHome-Led-Clock
+
+EspHome-VFD-Clock: https://github.com/trip5/EspHome-VFD-Clock

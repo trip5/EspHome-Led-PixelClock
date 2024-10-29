@@ -481,14 +481,16 @@ interval:
             id(wifi_stop_seek_time_count) += 1;
             if (id(wifi_stop_seek_time_count) >= id(wifi_stop_seek_time) + 60) {
               id(wifi_stop_seek_time_count) = 0;
+              id(led1).turn_off();
               id(wifi_id)->disable();
               id(display_ip).press();
             }
-          }
-          if (id(wifi_stop_seek) == false && id(wifi_id).is_disabled()) {
-            id(wifi_stop_seek_time_count) = 0;
-            id(wifi_id)->enable();
-            id(display_ip).press();
+          } else {
+            if (id(wifi_stop_seek) == false && id(wifi_id).is_disabled()) {
+              id(wifi_stop_seek_time_count) = 0;
+              id(wifi_id)->enable();
+              id(display_ip).press();
+            }
           }
           if (!id(wifi_id).is_connected() && !id(wifi_id).is_disabled()) {
             id(seek_blink_led) += 1;
@@ -503,10 +505,6 @@ interval:
                 call.perform();
               }
             }
-          }
-          if (id(led1).current_values.is_on() && (id(wifi_id).is_connected() || id(wifi_id).is_disabled())) {
-              auto call = id(led1).turn_off();
-              call.perform();
           }
 
 globals:

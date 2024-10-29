@@ -3,7 +3,7 @@ substitutions:
   name: led-pixelclock-red
   friendly_name: Led-PixelClock-Red
   comment: "EHLPClock-HA from Trip5"
-  project_version: "2024.06.29"
+  project_version: "2024.10.29"
   project_name: Trip5.EspHomeLedPixelClock-HA
   waiting: " . EHLPClock-HA . ." # shows when waiting for time
 
@@ -58,8 +58,7 @@ esphome:
       then:
         - wait_until:
             condition:
-              lambda: |-
-                return (id(my_time).now().is_valid());
+              - lambda: 'return (id(my_time).now().is_valid());'
         - ds1307.write_time:
 
 esp8266:
@@ -119,16 +118,6 @@ script:
       - lambda: 'id(my_time)->update();'
       - ds1307.write_time:
 
-interval:
-  - interval: 1min # check if the time should be synced, and if so, do it
-    then:
-      lambda: |-
-        id(sync_time_count) += 1;
-        if (id(sync_time_count) >= (id(sync_time) * 60)) {
-          id(sync_time_count) = 0;
-          id(sync_the_time).execute();
-        }
-
 api:
   reboot_timeout: 15min # 15min is default
   # This next section creates the Home Assistant services to allow messages to be displayed (also used for certain system messages)
@@ -183,6 +172,28 @@ logger:
 ota:
   - platform: esphome
     password: !secret ota_password
+    # a note here that for some reason these clocks seem unable to do a "pretty" OTA update
+    # but leaving the code here in hopes that it does work in the future
+    on_begin:
+      then:
+        - lambda: 'id(matrix)->print(0, 0, id(default_font), "OTA...");'
+        - logger.log: "OTA Update started."
+    on_progress:
+      then:
+        - lambda: 'id(matrix)->printf(0, 0, id(default_font), "OTA %d%%", (int)x);'
+        - logger.log:
+            format: "OTA progress %0.1f%%"
+            args: ["x"]
+    on_end:
+      then:
+        - lambda: 'id(matrix)->print(0, 0, id(default_font), "OTA Done");'
+        - logger.log: "OTA end"
+    on_error:
+      then:
+        - lambda: 'id(matrix)->print(0, 0, id(default_font), "OTAError");'
+        - logger.log:
+            format: "OTA update error %d"
+            args: ["x"]
 
 #Web Server is disabled due to memory constraints.  Enable at your own risk (consider removing captive_portal, reducing fonts to 1 to save memory)
 #web_server:
@@ -208,14 +219,12 @@ text_sensor:
       entity_category: diagnostic
   - platform: template
     name: "${friendly_name} ${project_name} Version"
-    lambda: |-
-      return to_string("$project_version");
+    lambda: 'return to_string("$project_version");'
     entity_category: diagnostic
     update_interval: 1h
   - platform: template
     name: "$friendly_name Time Zone"
-    lambda: |-
-      return {"$time_zone"};
+    lambda: 'return {"$time_zone"};'
     entity_category: diagnostic
     update_interval: 1h
   # Below this point are text sensors to hold time and date and allow for substitutions... you can delete/edit the filters, just don't delete the entire text sensor
@@ -230,7 +239,7 @@ text_sensor:
       - lambda: |-
           // Korean generally puts the 오후/오전 before the time, so let's just use a different format entirely "%p%l%M" (PM1:25) and run a substitute on it
           if (id(hour12_mode) == 1) {
-            std::time_t tz1time = (id(my_time).now().timestamp + offset);
+            std::time_t tz1time = (id(my_time).now().timestamp);
             std::tm *tz1time_astm = localtime(&tz1time);
             char display_tmdt[20];
             strftime(display_tmdt, 20, "%p%l:%M", tz1time_astm);
@@ -585,7 +594,8 @@ display:
               if (id(ha_sensor_data_stop) == false) {
                 id(ha_sensor_data_now) = 1;
               }
-              // check if Replace Interval is active, count or reset, when date display is finished - or after the interval, depending... and trip the boolean to display HA sensors
+              // check if Replace Interval is active, count or reset, when date display is finished - or after the interval, depending
+              // ...and trip the boolean to display HA sensors
               if (id(replace_interval) > 0) {
                 id(replace_interval_count) += 1;
                 if (id(replace_interval_count) >= id(replace_interval)) {
@@ -609,16 +619,26 @@ display:
       it.intensity(id(brightness_level));
       // This next section allows the rotation sensor to work - need to directly change settings in the component: https://esphome.io/api/max7219_8h
       if (id(rotation_mode).state == true) {
-        id(matrix)->set_reverse(0);
-        id(matrix)->set_chip_orientation(2);
+        it.set_reverse(0);
+        it.set_chip_orientation(2);
       } else {
-        id(matrix)->set_reverse(1);
-        id(matrix)->set_chip_orientation(0);
+        it.set_reverse(1);
+        it.set_chip_orientation(0);
       }
+
+interval:
+  - interval: 1min # check if the time should be synced, and if so, do it
+    then:
+      - lambda: |-
+          id(sync_time_count) += 1;
+          if (id(sync_time_count) >= (id(sync_time) * 60)) {
+            id(sync_time_count) = 0;
+            id(sync_the_time).execute();
+          }
 
 globals:
   - id: brightness_level
-    type: int
+    type: uint8_t
     restore_value: true
     initial_value: '1'
   - id: hour12_mode
@@ -638,11 +658,11 @@ globals:
     restore_value: false
     initial_value: 'false'
   - id: replace_interval
-    type: int
+    type: uint8_t
     restore_value: true
     initial_value: '0'
   - id: replace_interval_count
-    type: int
+    type: uint8_t
     restore_value: false
     initial_value: '0'
   - id: message
@@ -650,27 +670,27 @@ globals:
     restore_value: false
     initial_value: ''
   - id: message_display_time
-    type: int
+    type: uint8_t
     restore_value: false
     initial_value: '0'
   - id: message_clock_time
-    type: int
+    type: uint8_t
     restore_value: false
     initial_value: '0'
   - id: message_alive_time
-    type: int
+    type: uint8_t
     restore_value: false
     initial_value: '0'
   - id: message_display_time_count
-    type: int
+    type: uint8_t
     restore_value: false
     initial_value: '0'
   - id: message_clock_time_count
-    type: int
+    type: uint8_t
     restore_value: false
     initial_value: '0'
   - id: message_alive_time_count
-    type: int
+    type: uint8_t
     restore_value: false
     initial_value: '0'
   - id: date_display_mode
@@ -678,35 +698,36 @@ globals:
     restore_value: true
     initial_value: 'false'
   - id: time_display_time
-    type: int
+    type: uint8_t
     restore_value: true
     initial_value: '11'
   - id: date_display_time
-    type: int
+    type: uint8_t
     restore_value: true
     initial_value: '4'
   - id: time_display_count
-    type: int
+    type: uint8_t
     restore_value: false
     initial_value: '0'
   - id: date_display_count
-    type: int
+    type: uint8_t
     restore_value: false
     initial_value: '0'
   - id: sync_time
-    type: int
+    type: uint8_t
     restore_value: true
     initial_value: '8'
   - id: sync_time_count
-    type: int
+    type: uint8_t
     restore_value: false
     initial_value: '0'
+# HA Sensors variables
   - id: ha_sensor_data_this
-    type: int
+    type: uint8_t
     restore_value: false
     initial_value: '0'
   - id: ha_sensor_data_this_time
-    type: int
+    type: uint8_t
     restore_value: false
     initial_value: '0'
   - id: ha_sensor_data_now
@@ -722,10 +743,10 @@ globals:
     restore_value: true
     initial_value: 'false'
   - id: ha_sensor_data_time
-    type: int
+    type: uint8_t
     restore_value: true
     initial_value: '2'
-# Alt Time Zone variable
+# Alt Time Zone variables
   - id: tz_alt
     type: bool
     restore_value: true
@@ -750,65 +771,61 @@ switch:
     name: "$friendly_name 12 Hour Mode"
     id: hour12_select
     restore_mode: RESTORE_DEFAULT_OFF
-    lambda: |-
-      return id(hour12_mode);
+    lambda: 'return id(hour12_mode);'
     turn_on_action:
-        lambda: |-
-          ESP_LOGD("main", "12 Hour Mode On");
-          id(hour12_mode) = true;
+        - lambda: |-
+            ESP_LOGD("main", "12 Hour Mode On");
+            id(hour12_mode) = true;
     turn_off_action:
-        lambda: |-
-          ESP_LOGD("main", "12 Hour Mode Off");
-          id(hour12_mode) = false;
+        - lambda: |-
+            ESP_LOGD("main", "12 Hour Mode Off");
+            id(hour12_mode) = false;
   - platform: template
     name: "$friendly_name Date A Mode"
     id: date_A_select
     restore_mode: RESTORE_DEFAULT_OFF
-    lambda: |-
-      return id(date_A_mode);
+    lambda: 'return id(date_A_mode);'
     turn_on_action:
-        lambda: |-
-          ESP_LOGD("main", "Date A Mode On");
-          id(date_A_mode) = true;
+        - lambda: |-
+            ESP_LOGD("main", "Date A Mode On");
+            id(date_A_mode) = true;
     turn_off_action:
-        lambda: |-
-          ESP_LOGD("main", "Date A Mode Off");
-          id(date_A_mode) = false;
+        - lambda: |-
+            ESP_LOGD("main", "Date A Mode Off");
+            id(date_A_mode) = false;
   - platform: template
     name: "$friendly_name Replacement Mode"
     id: replace_mode_select
     restore_mode: RESTORE_DEFAULT_OFF
-    lambda: |-
-      return id(replace_mode);
+    lambda: 'return id(replace_mode);'
     turn_on_action:
-        lambda: |-
-          ESP_LOGD("main", "Replace Mode On");
-          id(auto_replace_tz_alt_select).turn_off();
-          id(replace_mode) = true;
-          id(replace_mode_auto_select).turn_on();
+        - lambda: |-
+            ESP_LOGD("main", "Replace Mode On");
+            id(auto_replace_tz_alt_select).turn_off();
+            id(replace_mode) = true;
+            id(replace_mode_auto_select).turn_on();
     turn_off_action:
-        lambda: |-
-          ESP_LOGD("main", "Replace Mode Off");
-          id(replace_mode) = false;
-          id(replace_mode_auto_select).turn_off();
+        - lambda: |-
+            ESP_LOGD("main", "Replace Mode Off");
+            id(replace_mode) = false;
+            id(replace_mode_auto_select).turn_off();
   - platform: template
     id: replace_mode_auto_select
     restore_mode: DISABLED
     internal: true
     turn_on_action:
-        lambda: |-
-          ESP_LOGD("main", "Replace Mode Auto On");
-          id(replace_mode_auto) = true;
+        - lambda: |-
+            ESP_LOGD("main", "Replace Mode Auto On");
+            id(replace_mode_auto) = true;
     turn_off_action:
-        lambda: |-
-          ESP_LOGD("main", "Replace Mode Auto Off");
-          id(replace_mode_auto) = false;
+        - lambda: |-
+            ESP_LOGD("main", "Replace Mode Auto Off");
+            id(replace_mode_auto) = false;
   - platform: template
     name: "$friendly_name Date Display Mode"
     id: date_mode_select
     restore_mode: RESTORE_DEFAULT_OFF
-    lambda: |-
-      return id(date_display_mode);
+    lambda: 'return id(date_display_mode);'
     turn_on_action:
         - lambda: |-
             ESP_LOGD("main", "Date on");
@@ -829,89 +846,85 @@ switch:
     name: "$friendly_name HA Sensors Data All"
     id: ha_sensor_data_all_select
     restore_mode: RESTORE_DEFAULT_OFF
-    lambda: |-
-      return id(ha_sensor_data_all);
+    lambda: 'return id(ha_sensor_data_all);'
     turn_on_action:
-        lambda: |-
-          ESP_LOGD("main", "HA Sensors Data All On");
-          id(ha_sensor_data_all) = true;
+        - lambda: |-
+            ESP_LOGD("main", "HA Sensors Data All On");
+            id(ha_sensor_data_all) = true;
     turn_off_action:
-        lambda: |-
-          ESP_LOGD("main", "HA Sensors Data All Off");
-          id(ha_sensor_data_all) = false;
+        - lambda: |-
+            ESP_LOGD("main", "HA Sensors Data All Off");
+            id(ha_sensor_data_all) = false;
   - platform: template
     name: "$friendly_name HA Sensors Data Stop"
     id: ha_sensor_data_stop_select
     restore_mode: RESTORE_DEFAULT_OFF
-    lambda: |-
-      return id(ha_sensor_data_stop);
+    lambda: 'return id(ha_sensor_data_stop);'
     turn_on_action:
-        lambda: |-
-          ESP_LOGD("main", "HA Sensors Data Stop On");
-          id(ha_sensor_data_stop) = true;
+        - lambda: |-
+            ESP_LOGD("main", "HA Sensors Data Stop On");
+            id(ha_sensor_data_stop) = true;
     turn_off_action:
-        lambda: |-
-          ESP_LOGD("main", "HA Sensors Data Stop Off");
-          id(ha_sensor_data_stop) = false;
+        - lambda: |-
+            ESP_LOGD("main", "HA Sensors Data Stop Off");
+            id(ha_sensor_data_stop) = false;
 # Alt Time Zone selector / activator
   - platform: template
     name: "$friendly_name Alternate Time ($time_zone_alt_name)"
     id: tz_alt_select
     restore_mode: RESTORE_DEFAULT_OFF
-    lambda: |-
-      return id(tz_alt);
+    lambda: 'return id(tz_alt);'
     turn_on_action:
-        lambda: |-
-          ESP_LOGD("main", "Alt Time Zone On");
-          id(auto_replace_tz_alt_select).turn_off();
-          id(tz_alt) = true;
-          id(tz_alt_auto_select).turn_on();
+        - lambda: |-
+            ESP_LOGD("main", "Alt Time Zone On");
+            id(auto_replace_tz_alt_select).turn_off();
+            id(tz_alt) = true;
+            id(tz_alt_auto_select).turn_on();
     turn_off_action:
-        lambda: |-
-          ESP_LOGD("main", "Alt Time Zone Off");
-          id(tz_alt) = false;
-          id(tz_alt_auto_select).turn_off();
+        - lambda: |-
+            ESP_LOGD("main", "Alt Time Zone Off");
+            id(tz_alt) = false;
+            id(tz_alt_auto_select).turn_off();
   - platform: template
     id: tz_alt_auto_select
     restore_mode: DISABLED
     internal: true
     turn_on_action:
-        lambda: |-
-          ESP_LOGD("main", "Alt Time Zone Auto On");
-          id(tz_alt_auto) = true;
-          id(my_time)->set_timezone("$time_zone_alt");
-          id(my_time_ds)->set_timezone("$time_zone_alt");
-          id(my_time)->call_setup();
+        - lambda: |-
+            ESP_LOGD("main", "Alt Time Zone Auto On");
+            id(tz_alt_auto) = true;
+            id(my_time)->set_timezone("$time_zone_alt");
+            id(my_time_ds)->set_timezone("$time_zone_alt");
+            id(my_time)->call_setup();
     turn_off_action:
-        lambda: |-
-          ESP_LOGD("main", "Alt Time Zone Auto Off");
-          id(tz_alt_auto) = false;
-          id(my_time)->set_timezone("$time_zone");
-          id(my_time_ds)->set_timezone("$time_zone");
-          id(my_time)->call_setup();
+        - lambda: |-
+            ESP_LOGD("main", "Alt Time Zone Auto Off");
+            id(tz_alt_auto) = false;
+            id(my_time)->set_timezone("$time_zone");
+            id(my_time_ds)->set_timezone("$time_zone");
+            id(my_time)->call_setup();
   - platform: template
     name: "$friendly_name Auto Replacement = Alt. Time"
     id: auto_replace_tz_alt_select
     restore_mode: RESTORE_DEFAULT_OFF
-    lambda: |-
-      return id(auto_replace_tz_alt);
+    lambda: 'return id(auto_replace_tz_alt);'
     turn_on_action:
-        lambda: |-
-          ESP_LOGD("main", "Auto Replacement = Alt. Time On");
-          auto call = id(replace_interval_select).make_call();
-          call.set_value(1);
-          call.perform();
-          id(replace_mode_select).turn_off();
-          id(tz_alt_select).turn_off();
-          id(auto_replace_tz_alt) = true;
+        - lambda: |-
+            ESP_LOGD("main", "Auto Replacement = Alt. Time On");
+            auto call = id(replace_interval_select).make_call();
+            call.set_value(1);
+            call.perform();
+            id(replace_mode_select).turn_off();
+            id(tz_alt_select).turn_off();
+            id(auto_replace_tz_alt) = true;
     turn_off_action:
-        lambda: |-
-          ESP_LOGD("main", "Auto Replacement Mode = Alt. Time Off");
-          auto call = id(replace_interval_select).make_call();
-          call.set_value(0);
-          call.perform();
-          id(auto_replace_tz_alt) = false;
-          id(tz_alt_auto_select).turn_off();
+        - lambda: |-
+            ESP_LOGD("main", "Auto Replacement Mode = Alt. Time Off");
+            auto call = id(replace_interval_select).make_call();
+            call.set_value(0);
+            call.perform();
+            id(auto_replace_tz_alt) = false;
+            id(tz_alt_auto_select).turn_off();
 
 number:
   - platform: template
@@ -926,9 +939,9 @@ number:
     mode: slider
     set_action:
       then:
-        lambda: |-
-          id(brightness_level) = x;
-          ESP_LOGD("main", "Brightness: %d", id(brightness_level));
+        - lambda: |-
+            id(brightness_level) = x;
+            ESP_LOGD("main", "Brightness: %d", id(brightness_level));
   - platform: template
     name: "$friendly_name Time Display Time"
     id: time_display_time_select
@@ -942,9 +955,9 @@ number:
     unit_of_measurement: seconds
     set_action:
       then:
-        lambda: |-
-          id(time_display_time) = x;
-          ESP_LOGD("main", "Time Display Time: %d seconds", id(time_display_time));
+        - lambda: |-
+            id(time_display_time) = x;
+            ESP_LOGD("main", "Time Display Time: %d seconds", id(time_display_time));
   - platform: template
     name: "$friendly_name Date Display Time"
     id: date_display_time_select
@@ -958,9 +971,9 @@ number:
     unit_of_measurement: seconds
     set_action:
       then:
-        lambda: |-
-          id(date_display_time) = x;
-          ESP_LOGD("main", "Date Display Time: %d seconds", id(date_display_time));
+        - lambda: |-
+            id(date_display_time) = x;
+            ESP_LOGD("main", "Date Display Time: %d seconds", id(date_display_time));
   - platform: template
     name: "$friendly_name Auto Replacement Interval"
     id: replace_interval_select
@@ -974,17 +987,17 @@ number:
     unit_of_measurement: intervals
     set_action:
       then:
-        lambda: |-
-          id(replace_interval) = x;
-          ESP_LOGD("main", "Auto Replacement Interval: %d", id(replace_interval));
-          if (id(replace_interval) > 0) {
-            if (id(auto_replace_tz_alt) == true) {
-              id(tz_alt_select).turn_off();
+        - lambda: |-
+            id(replace_interval) = x;
+            ESP_LOGD("main", "Auto Replacement Interval: %d", id(replace_interval));
+            if (id(replace_interval) > 0) {
+              if (id(auto_replace_tz_alt) == true) {
+                id(tz_alt_select).turn_off();
+              }
+              if (id(replace_mode) == true) {
+                id(replace_mode_select).turn_on();
+              }
             }
-            if (id(replace_mode) == true) {
-              id(replace_mode_select).turn_on();
-            }
-          }
   - platform: template
     name: "$friendly_name Time Sync Interval (hours)"
     id: sync_time_select
@@ -996,9 +1009,9 @@ number:
     mode: box
     set_action:
       then:
-        lambda: |-
-          id(sync_time) = x;
-          ESP_LOGD("main", "Time Sync Interval: %d hours", id(sync_time));
+        - lambda: |-
+            id(sync_time) = x;
+            ESP_LOGD("main", "Time Sync Interval: %d hours", id(sync_time));
   - platform: template
     name: "$friendly_name HA Sensor Data Time (seconds)"
     id: ha_sensor_data_time_select
@@ -1010,6 +1023,6 @@ number:
     mode: box
     set_action:
       then:
-        lambda: |-
-          id(ha_sensor_data_time) = x;
-          ESP_LOGD("main", "HA Sensor Data Time: %d seconds", id(ha_sensor_data_time));
+        - lambda: |-
+            id(ha_sensor_data_time) = x;
+            ESP_LOGD("main", "HA Sensor Data Time: %d seconds", id(ha_sensor_data_time));
