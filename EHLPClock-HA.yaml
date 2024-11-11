@@ -1,9 +1,9 @@
 # My github: https://github.com/trip5
 substitutions:
-  name: led-pixelclock-red
-  friendly_name: Led-PixelClock-Red
+  name: led-pixelclock-ha
+  friendly_name: Led-PixelClock-HA
   comment: "EHLPClock-HA from Trip5"
-  project_version: "2024.10.29"
+  project_version: "2024.11.11"
   project_name: Trip5.EspHomeLedPixelClock-HA
   waiting: " . EHLPClock-HA . ." # shows when waiting for time
 
@@ -44,11 +44,11 @@ substitutions:
   rotation_pin: GPIO16
 
 esphome:
-  name: $name
-  comment: "$comment"
+  name: ${name}
+  comment: "${comment}"
   project:
-    name: "$project_name"
-    version: "$project_version"
+    name: "${project_name}"
+    version: "${project_version}"
   min_version: 2023.11.0
   on_boot:
     - priority: 600
@@ -72,7 +72,7 @@ wifi:
   enable_on_boot: True
   id: wifi_id
   ap:
-    ssid: $name
+    ssid: ${name}
     password: !secret ap_password
   on_connect:
     - logger.log: "Wifi connected"
@@ -88,7 +88,7 @@ font:
     id: default_font
     size: 8
     glyphs:  |
-      0123456789:.Sun MoTesWdhFriatAPJbpylgOcNvD오후전일월화수목금토요
+      %0123456789:.Sun MoTesWdhFriatAPJbpylgOcNvD오후전일월화수목금토요
     # Above covers Sun Mon Tues Wed Thu Fri Sat AM PM Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec as well as Korean Dates
     # Because this font is ONLY used for time and date display, it should be the easiest to cut down
     # If your clock is crashing, you can delete this section, go down to the display section, find and change message_font (3 times) to default_font
@@ -98,18 +98,18 @@ font:
     size: 8
     glyphs:  |
       ! "#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz°₩₿
-    # EHLPClock-A. Datenf
-    # Above should cover the system messages: "EHLPClock-HA . / Date on / Date off" if you don't plan on using on using the HA service calls or sensors
+    # %0123456789 EHLPClock-A.DatenfOTr
+    # Above should cover the system messages: "EHLPClock-HA . / Date on / Date off / OTA % / Done / Error" if you don't plan on using on using the HA service calls or sensors
 
 time:
   - platform: homeassistant # use Home Assistant as a time source (sntp is also possible)
     id: my_time
-    timezone: "$time_zone"
+    timezone: "${time_zone}"
     update_interval: 24h # This seems like the longest safe amount of time - actual configured update happens in interval section (or when changing time zone)
   - platform: ds1307 # even though it's a ds3231
     id: my_time_ds
     update_interval: never
-    timezone: "$time_zone"
+    timezone: "${time_zone}"
 
 script:
   - id: sync_the_time
@@ -119,6 +119,8 @@ script:
       - ds1307.write_time:
 
 api:
+  encryption: # delete these 2 lines if you don't use encryption
+    key: !secret encryption_key
   reboot_timeout: 15min # 15min is default
   # This next section creates the Home Assistant services to allow messages to be displayed (also used for certain system messages)
   services:
@@ -172,25 +174,37 @@ logger:
 ota:
   - platform: esphome
     password: !secret ota_password
-    # a note here that for some reason these clocks seem unable to do a "pretty" OTA update
-    # but leaving the code here in hopes that it does work in the future
     on_begin:
       then:
-        - lambda: 'id(matrix)->print(0, 0, id(default_font), "OTA...");'
+        - lambda: |-
+            id(matrix)->clear();
+            id(matrix)->print(0, 0, id(message_font), "OTA...");
+            id(matrix)->loop();
         - logger.log: "OTA Update started."
     on_progress:
       then:
-        - lambda: 'id(matrix)->printf(0, 0, id(default_font), "OTA %d%%", (int)x);'
+        - lambda: |-
+            if (x > 9) {
+              id(matrix)->clear();
+              id(matrix)->printf(0, 0, id(message_font), "OTA %d%%", (int)x);
+              id(matrix)->loop();
+            }
         - logger.log:
             format: "OTA progress %0.1f%%"
             args: ["x"]
     on_end:
       then:
-        - lambda: 'id(matrix)->print(0, 0, id(default_font), "OTA Done");'
+        - lambda: |-
+            id(matrix)->clear();
+            id(matrix)->print(0, 0, id(message_font), "OTA Done");
+            id(matrix)->loop();
         - logger.log: "OTA end"
     on_error:
       then:
-        - lambda: 'id(matrix)->print(0, 0, id(default_font), "OTAError");'
+        - lambda: |-
+            id(matrix)->clear();
+            id(matrix)->print(0, 0, id(message_font), "Error!");
+            id(matrix)->loop();
         - logger.log:
             format: "OTA update error %d"
             args: ["x"]
@@ -205,33 +219,33 @@ captive_portal:
 
 text_sensor:
   - platform: version
-    name: "$friendly_name ESPHome Version"
+    name: "${friendly_name} ESPHome Version"
     hide_timestamp: true
     entity_category: diagnostic
   - platform: wifi_info
     ip_address:
       id: wifi_ip
-      name: "$friendly_name IP Address"
+      name: "${friendly_name} IP Address"
       entity_category: diagnostic
     ssid:
       id: wifi_ssid
-      name: "$friendly_name SSID"
+      name: "${friendly_name} SSID"
       entity_category: diagnostic
   - platform: template
     name: "${friendly_name} ${project_name} Version"
-    lambda: 'return to_string("$project_version");'
+    lambda: 'return to_string("${project_version}");'
     entity_category: diagnostic
     update_interval: 1h
   - platform: template
-    name: "$friendly_name Time Zone"
-    lambda: 'return {"$time_zone"};'
+    name: "${friendly_name} Time Zone"
+    lambda: 'return {"${time_zone}"};'
     entity_category: diagnostic
     update_interval: 1h
   # Below this point are text sensors to hold time and date and allow for substitutions... you can delete/edit the filters, just don't delete the entire text sensor
   # The github repo should also contain methods to change the time into other localized formats.
   - platform: template
     id: time_text
-    name: "$friendly_name Replacement Time Text"
+    name: "${friendly_name} Replacement Time Text"
     entity_category: diagnostic
     update_interval: never
     internal: true
@@ -255,7 +269,7 @@ text_sensor:
         - "PM -> 오후"
   - platform: template
     id: date_text
-    name: "$friendly_name Replacement Date Text"
+    name: "${friendly_name} Replacement Date Text"
     entity_category: diagnostic
     update_interval: never
     internal: true
@@ -277,7 +291,7 @@ text_sensor:
         - "Dec -> 12월"
   - platform: template
     id: dateA_text
-    name: "$friendly_name Replacement Date A Text"
+    name: "${friendly_name} Replacement Date A Text"
     entity_category: diagnostic
     update_interval: never
     internal: true
@@ -338,13 +352,13 @@ output:
   - platform: esp8266_pwm
     id: statusled
     pin:
-      number: $status_led_pin
+      number: ${status_led_pin}
       inverted: true
 
 light:
   - platform: monochromatic
     id: led1
-    name: "$friendly_name Status LED"
+    name: "${friendly_name} Status LED"
     output: statusled
     internal: true
 
@@ -352,24 +366,24 @@ preferences:
   flash_write_interval: 15s # 0 does immediate write to memory with no mem buffer (not recommended) (only saves when persistent variables have changed)
 
 i2c:
-  sda: $sda_pin
-  scl: $scl_pin
+  sda: ${sda_pin}
+  scl: ${scl_pin}
   scan: true
   id: i2cbus
 
 spi:
-  clk_pin: $clk_pin
-  mosi_pin: $mosi_pin
+  clk_pin: ${clk_pin}
+  mosi_pin: ${mosi_pin}
 
 # Some info how to handle multi_click options: https://community.home-assistant.io/t/esphome-button-held-double-press/136083/10
 binary_sensor:
   - platform: status
-    name: "$friendly_name Status"
+    name: "${friendly_name} Status"
   - platform: gpio
     pin: 
-      number: $download_button_pin
+      number: ${download_button_pin}
       inverted: true
-    name: "$friendly_name Download Button"
+    name: "${friendly_name} Download Button"
     filters:
       - delayed_on: 10ms
       - delayed_off: 10ms
@@ -408,15 +422,15 @@ binary_sensor:
           - switch.toggle: auto_replace_tz_alt_select
   - platform: gpio
     pin: 
-      number: $rotation_pin
+      number: ${rotation_pin}
       inverted: true
-    name: "$friendly_name Rotation Mode"
+    name: "${friendly_name} Rotation Mode"
     id: rotation_mode
 
 display:
   - platform: max7219digit
     id: matrix
-    cs_pin: $cs_pin
+    cs_pin: ${cs_pin}
     num_chips: 4
     update_interval: 1s
     reverse_enable: true # true for button-side up / false for down (be warned that if you change these 2 settings you may get a garbled display)
@@ -430,7 +444,7 @@ display:
           id(message_display_time_count) += 1;
           id(message_alive_time_count) += 1;
           std::string message_text = id(message);
-          it.print(0, 0, id(message_font), message_text.c_str());          // change message_font to default_font if you need memory
+          it.print(0, 0, id(message_font), message_text.c_str());
           if (id(message_display_time_count) >= id(message_display_time)) {
             id(message_display_time_count) = 0;
             id(message_clock_time_count) = 0;
@@ -528,7 +542,7 @@ display:
                 id(ha_sensor_data_this) += 1;
                 id(ha_sensor_data_now) = false ; // we needed to buy 1 second if this mode is on
               } else {
-                it.print(0, 0, id(message_font), sensor_data_text.c_str());          // change message_font to default_font if you need memory
+                it.print(0, 0, id(message_font), sensor_data_text.c_str());
               }
             } else {
               id(ha_sensor_data_now) = false;
@@ -554,7 +568,7 @@ display:
               id(date_display_count) += 1;
               // if date_formatA is on, display it for 50% of the time first, after the 1st...
               if ((id(date_A_mode) == true) && (id(date_display_count) <= (id(date_display_time) / 2))) {
-                strftime(display_tmdt, 20, "$date_formatA", tz1time_astm);
+                strftime(display_tmdt, 20, "${date_formatA}", tz1time_astm);
                 // check if Date A text replacement should be made
                 if (id(replace_mode_auto) == true) {
                   std::string tmdt(display_tmdt);
@@ -562,7 +576,7 @@ display:
                   strcpy(display_tmdt, id(dateA_text).state.c_str());
                 }
               } else {
-                strftime(display_tmdt, 20, "$date_format", tz1time_astm);
+                strftime(display_tmdt, 20, "${date_format}", tz1time_astm);
                 // check if Date text replacement should be made
                 if (id(replace_mode_auto) == true) {
                   std::string tmdt(display_tmdt);
@@ -575,9 +589,9 @@ display:
               id(time_display_count) += 1;
               // choose which time format to display
               if (id(hour12_mode) == true) {
-                strftime(display_tmdt, 20, "$time_format12", tz1time_astm);
+                strftime(display_tmdt, 20, "${time_format12}", tz1time_astm);
               } else {
-                strftime(display_tmdt, 20, "$time_format24", tz1time_astm);
+                strftime(display_tmdt, 20, "${time_format24}", tz1time_astm);
               }
               // check if Time text replacement should be made
               if (id(replace_mode_auto) == true) {
@@ -614,7 +628,7 @@ display:
           }
         }
       } else {
-        it.print(0, 0, id(message_font), "$waiting");          // change message_font to default_font if you need memory
+        it.print(0, 0, id(message_font), "${waiting}");
       }
       it.intensity(id(brightness_level));
       // This next section allows the rotation sensor to work - need to directly change settings in the component: https://esphome.io/api/max7219_8h
@@ -763,12 +777,12 @@ globals:
 button:
   - platform: restart
     id: restart_button
-    name: "$friendly_name Restart"
+    name: "${friendly_name} Restart"
     entity_category: diagnostic
 
 switch:
   - platform: template
-    name: "$friendly_name 12 Hour Mode"
+    name: "${friendly_name} 12 Hour Mode"
     id: hour12_select
     restore_mode: RESTORE_DEFAULT_OFF
     lambda: 'return id(hour12_mode);'
@@ -781,7 +795,7 @@ switch:
             ESP_LOGD("main", "12 Hour Mode Off");
             id(hour12_mode) = false;
   - platform: template
-    name: "$friendly_name Date A Mode"
+    name: "${friendly_name} Date A Mode"
     id: date_A_select
     restore_mode: RESTORE_DEFAULT_OFF
     lambda: 'return id(date_A_mode);'
@@ -794,7 +808,7 @@ switch:
             ESP_LOGD("main", "Date A Mode Off");
             id(date_A_mode) = false;
   - platform: template
-    name: "$friendly_name Replacement Mode"
+    name: "${friendly_name} Replacement Mode"
     id: replace_mode_select
     restore_mode: RESTORE_DEFAULT_OFF
     lambda: 'return id(replace_mode);'
@@ -822,7 +836,7 @@ switch:
             ESP_LOGD("main", "Replace Mode Auto Off");
             id(replace_mode_auto) = false;
   - platform: template
-    name: "$friendly_name Date Display Mode"
+    name: "${friendly_name} Date Display Mode"
     id: date_mode_select
     restore_mode: RESTORE_DEFAULT_OFF
     lambda: 'return id(date_display_mode);'
@@ -843,7 +857,7 @@ switch:
             id(message_display_time) = 1;
             id(message_clock_time) = 0;
   - platform: template
-    name: "$friendly_name HA Sensors Data All"
+    name: "${friendly_name} HA Sensors Data All"
     id: ha_sensor_data_all_select
     restore_mode: RESTORE_DEFAULT_OFF
     lambda: 'return id(ha_sensor_data_all);'
@@ -856,7 +870,7 @@ switch:
             ESP_LOGD("main", "HA Sensors Data All Off");
             id(ha_sensor_data_all) = false;
   - platform: template
-    name: "$friendly_name HA Sensors Data Stop"
+    name: "${friendly_name} HA Sensors Data Stop"
     id: ha_sensor_data_stop_select
     restore_mode: RESTORE_DEFAULT_OFF
     lambda: 'return id(ha_sensor_data_stop);'
@@ -870,7 +884,7 @@ switch:
             id(ha_sensor_data_stop) = false;
 # Alt Time Zone selector / activator
   - platform: template
-    name: "$friendly_name Alternate Time ($time_zone_alt_name)"
+    name: "${friendly_name} Alternate Time (${time_zone_alt_name})"
     id: tz_alt_select
     restore_mode: RESTORE_DEFAULT_OFF
     lambda: 'return id(tz_alt);'
@@ -893,18 +907,18 @@ switch:
         - lambda: |-
             ESP_LOGD("main", "Alt Time Zone Auto On");
             id(tz_alt_auto) = true;
-            id(my_time)->set_timezone("$time_zone_alt");
-            id(my_time_ds)->set_timezone("$time_zone_alt");
+            id(my_time)->set_timezone("${time_zone_alt}");
+            id(my_time_ds)->set_timezone("${time_zone_alt}");
             id(my_time)->call_setup();
     turn_off_action:
         - lambda: |-
             ESP_LOGD("main", "Alt Time Zone Auto Off");
             id(tz_alt_auto) = false;
-            id(my_time)->set_timezone("$time_zone");
-            id(my_time_ds)->set_timezone("$time_zone");
+            id(my_time)->set_timezone("${time_zone}");
+            id(my_time_ds)->set_timezone("${time_zone}");
             id(my_time)->call_setup();
   - platform: template
-    name: "$friendly_name Auto Replacement = Alt. Time"
+    name: "${friendly_name} Auto Replacement = Alt. Time"
     id: auto_replace_tz_alt_select
     restore_mode: RESTORE_DEFAULT_OFF
     lambda: 'return id(auto_replace_tz_alt);'
@@ -928,7 +942,7 @@ switch:
 
 number:
   - platform: template
-    name: "$friendly_name Brightness"
+    name: "${friendly_name} Brightness"
     id: brightness_select
     restore_value: true
     optimistic: true
@@ -943,7 +957,7 @@ number:
             id(brightness_level) = x;
             ESP_LOGD("main", "Brightness: %d", id(brightness_level));
   - platform: template
-    name: "$friendly_name Time Display Time"
+    name: "${friendly_name} Time Display Time"
     id: time_display_time_select
     restore_value: true
     optimistic: true
@@ -959,7 +973,7 @@ number:
             id(time_display_time) = x;
             ESP_LOGD("main", "Time Display Time: %d seconds", id(time_display_time));
   - platform: template
-    name: "$friendly_name Date Display Time"
+    name: "${friendly_name} Date Display Time"
     id: date_display_time_select
     restore_value: true
     optimistic: true
@@ -975,7 +989,7 @@ number:
             id(date_display_time) = x;
             ESP_LOGD("main", "Date Display Time: %d seconds", id(date_display_time));
   - platform: template
-    name: "$friendly_name Auto Replacement Interval"
+    name: "${friendly_name} Auto Replacement Interval"
     id: replace_interval_select
     restore_value: true
     optimistic: true
@@ -999,7 +1013,7 @@ number:
               }
             }
   - platform: template
-    name: "$friendly_name Time Sync Interval (hours)"
+    name: "${friendly_name} Time Sync Interval (hours)"
     id: sync_time_select
     restore_value: true
     optimistic: true
@@ -1013,7 +1027,7 @@ number:
             id(sync_time) = x;
             ESP_LOGD("main", "Time Sync Interval: %d hours", id(sync_time));
   - platform: template
-    name: "$friendly_name HA Sensor Data Time (seconds)"
+    name: "${friendly_name} HA Sensor Data Time (seconds)"
     id: ha_sensor_data_time_select
     restore_value: true
     optimistic: true

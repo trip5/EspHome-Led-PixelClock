@@ -127,20 +127,29 @@ The hotspot will activate after 10 seconds (lowered from 60 seconds which is ESP
 
 You can enable or disable this mode by holding the button for 5 seconds to toggle the function. The wifi will be turned on again if it has been turned off.
 
+### Display Off
+
+There are two options to turn off the display. One is to turn off the display after a configurable time when the clock is not being used (in minutes).
+The other is to turn off the display when there is no Wifi connection (in seconds).  The display may be turned on again by pressing the button.
+
 ### Power Consumption
 
-Measured with Large Blue LED, 2024.10.29 Version, minimum 1 hour each mode
+*Small Red LED, 2024.11.11 Version, 1 hour each mode, measured with a FNIRSI FNB-58 powered externally*
 
-| Status: Modes                         | Power usage per hour |
-| --------------------------------------| -------------------- |
-| Connected: Display On - Brightness 13 | 424 mA |
-| Connected: Display On - Brightness 0  | 93 mA |
-| No Wifi: Stop Seek Off - Brightness 0 | 97 mA |
-| No Wifi: Stop Seek On - Brightness 0  | < 100 mA * |
+| Status: Modes                                        | Power usage |
+| ---------------------------------------------------- | ----------- |
+| Connected: Display On - Brightness 14                | 481.44 mAh  |
+| Connected: Display On - Brightness 0                 | 112.50 mAh  |
+| Connected: Display Off after 5 min                   | 99.78 mAh   |
+| No Wifi: Stop Seek Off & Display On - Brightness 0   | 118.33 mAh  |
+| No Wifi: Stop Seek On & Display On - Brightness 0    | 63.72 mAh  |
+| No Wifi: Stop Seek On & Display Off after 30 sec     | 50.04 mAh  |
 
-My USB power tool refused to count when the current was below 0.1 A. I'll redo these tests after I get a better tool.
+*Note: On this clock, Brightness 0 is still very visible. For the display to turn off, the display is cleared which should have the same effect.*
 
-Previous tests had measured 66mA with Stop Seek On and the display on... which may have been a faulty test because it was done with the same tool.
+#### What Does This Mean?
+
+On maximum power savings, you could power the clock from a 5000mAh powerbank for around 4 days: `5000mAh / 51mA ≈ 98 hours`!
 
 ### LED Output
 
@@ -234,7 +243,8 @@ I've found anything below 8kB available to the heap can cause constant crashes.
 
 | Date       | Release Notes    |
 | ---------- | ---------------- |
-| 2024.10.29 | Some bug fixes, improvements to code, added hard-coded variables in regular version, should free up more memory for fonts |
+| 2024.11.11 | OTA display status works, Display off added to regular version (hard-coded variables), power measurements complete
+| 2024.10.29 | Some bug fixes, improvements to code, added hard-coded variables in regular version which should free up more memory for fonts |
 | 2024.08.22 | Added `local: true` to non-HA version |
 | 2024.06.29 | Removed Alt TZ from main version, minor fixes |
 | 2024.06.19 | Fixed display times |
@@ -303,7 +313,7 @@ The larger clocks use a 1088AB which can be found on Aliexpress here: https://vi
 
 The smaller clocks use 788AB (788AS?) which can be found from the same seller here: https://vi.aliexpress.com/item/1005007029678274.html
 
-Unfortunately it seems they can only be bought in bulk of 10 to 100 quantity...
+Unfortunately it seems they can only be bought in bulk of 10 to 100 quantity... I've ordered the red-colored ones (both types) and I can confirm they work.
 
 Be sure to get the CC models only and do not get the mixed color models as they have more pins.
 

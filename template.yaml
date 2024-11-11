@@ -7,7 +7,10 @@
       attributes:
         # The numbered attributes (0 to 9) are info screens
         0: "₿ ₩{{ (states('sensor.bitcoin_price')|int/1000000) | round(0) | default('NA') }}M"
-        1: "In {{ states('sensor.room_temperature') | round(1) | default('NA') }}°C"
+        1:>
+          {%- if states('sensor.inside_temperature') not in ['unavailable', 'unknown'] -%}
+            In {{ states('sensor.inside_temperature') | float | round(1) }}°C
+          {%- endif %}
 
 # This style is for a sensor that relies on at least one service call (ie. for weather) - you can still use simple/derivative sensors
 
@@ -28,6 +31,11 @@
       attributes:
         # The numbered attributes (0 to 9) are info screens
         0: "₿ ₩{{ (states('sensor.bitcoin_price')|int/1000000) | round(0) | default('NA') }}M"
-        1: >
+        1:>
+          {%- if states('sensor.inside_temperature') not in ['unavailable', 'unknown'] -%}
+            In {{ states('sensor.inside_temperature') | float | round(1) }}°C
+          {%- endif %}
+        2: >
           Out {{ hourly["weather.openweathermap_hourly"].forecast[0].temperature | round(0) | default('NA') }}°C
-        2: "In {{ states('sensor.room_temperature') | round(1) | default('NA') }}°C"
+
+# Note that for 1: Inside temperature, it checks to see if it is available, otherwise it is blank - and the clock will skip over blanks!
