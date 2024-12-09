@@ -27,11 +27,11 @@ text_sensor:
     filters:
       - lambda: |-
           // French generally uses 24-hour time, let's just substitute a different format entirely "%Hh %M" (13h 25) - you could also just just use "$time_format24"
-          if (id(hour12_mode) == 1) {
+          if (id(hour12_mode).state == 1) {
             int offset = 0;
             // delete next 3 lines if using the HA version...
-            if (id(tzoffset_on) != 0) {
-              offset = (int)(60 * 60 * (id(tzoffset)));
+            if (id(tzoffset_on).state != 0) {
+              offset = (int)(60 * 60 * (id(tzoffset).state));
             }
             std::time_t tz1time = (id(my_time).now().timestamp + offset);
             std::tm *tz1time_astm = localtime(&tz1time);
@@ -53,11 +53,11 @@ text_sensor:
     filters:
       - lambda: |-
           // We're just going to get the time again, this time calling the appropriate format from strftime
-          if (id(hour12_mode) == 1) {
+          if (id(hour12_mode).state == 1) {
             int offset = 0;
             // delete next 3 lines if using the HA version...
-            if (id(tzoffset_on) != 0) {
-              offset = (int)(60 * 60 * (id(tzoffset)));
+            if (id(tzoffset_on).state != 0) {
+              offset = (int)(60 * 60 * (id(tzoffset).state));
             }
             std::time_t tz1time = (id(my_time).now().timestamp + offset);
             std::tm *tz1time_astm = localtime(&tz1time);

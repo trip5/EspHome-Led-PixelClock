@@ -174,6 +174,8 @@ You could consider hosting the file on another machine in-house, too by using so
   js_include: ""
   js_url: "http://192.168.1.1/esphome-www/www.js"
 ```
+Please note that for some reason, I'm not sure that the UI can be viewed from an Chrome-based mobile browser. Maybe my phone has an issue.
+It seems to work fine when viewing on a computer or an Apple phone. If you have information to share, I'd be glad to know why this is.
 
 ## Home Assistant Version
 
@@ -243,7 +245,8 @@ I've found anything below 8kB available to the heap can cause constant crashes.
 
 | Date       | Release Notes    |
 | ---------- | ---------------- |
-| 2024.11.11 | OTA display status works, Display off added to regular version (hard-coded variables), power measurements complete
+| 2024.12.09 | Recoded to remove many global variables, relying on numbers and switches where possible, hard-coded variables removed |
+| 2024.11.11 | OTA display status works, Display off added to regular version (hard-coded variables), power measurements complete |
 | 2024.10.29 | Some bug fixes, improvements to code, added hard-coded variables in regular version which should free up more memory for fonts |
 | 2024.08.22 | Added `local: true` to non-HA version |
 | 2024.06.29 | Removed Alt TZ from main version, minor fixes |

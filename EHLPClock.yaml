@@ -3,7 +3,7 @@ substitutions:
   name: led-pixelclock
   friendly_name: Led-PixelClock
   comment: "EHLPClock from Trip5"
-  project_version: "2024.11.11"
+  project_version: "2024.12.09"
   project_name: Trip5.EspHomeLedPixelClock
   waiting: " . EHLPClock . ." # shows when waiting for time
 
@@ -38,12 +38,6 @@ substitutions:
   download_button_pin: GPIO0
   rotation_pin: GPIO16
 
-# Hard-coded variables (removed from UI because of memory constraints)
-  wifi_stop_seek_time: "180" # How many seconds to give up trying to connect to Wifi: 60 to 315 (do not go outside these numbers)
-  time_sync_interval: "8" # How often to sync the RTC: 1 to 24 (hours)
-  display_off_time: "0" # How many minutes until the display turns off (while connected) (0 = disable, do not go above 255)
-  display_off_no_wifi_time: "0" # How many seconds until the display turns off (while disconnected) (0 = disable, do not go above 255)
-
 esphome:
   name: ${name}
   comment: "${comment}"
@@ -55,18 +49,6 @@ esphome:
     - priority: 600
       then:
         - ds1307.read_time:
-        - globals.set:
-            id: sync_time
-            value: !lambda 'return ${time_sync_interval};'
-        - globals.set:
-            id: wifi_stop_seek_time
-            value: !lambda 'return (${wifi_stop_seek_time} - 60);'
-        - globals.set:
-            id: display_off_time
-            value: !lambda 'return (${display_off_time});'
-        - globals.set:
-            id: display_off_no_wifi_time
-            value: !lambda 'return (${display_off_no_wifi_time});'
     - priority: -100
       then:
         - wait_until:
@@ -79,7 +61,7 @@ esp8266:
   restore_from_flash: True
 
 wifi:
-  ssid: !secret wifi_ssid_DNB
+  ssid: !secret wifi_ssid
   password: !secret wifi_password
   reboot_timeout: 0s # reboot if no wifi (must be disabled for wifi to be turned off)
   enable_on_boot: True
@@ -99,7 +81,7 @@ wifi:
   on_disconnect:
     - if:
         condition:
-          - lambda: 'return (id(wifi_stop_seek) ==  true);'
+          - switch.is_on: wifi_stop_seek
         then:
           - logger.log: "Wifi disconnected - will be disabled soon (stop seek is on)..."
         else:
@@ -116,13 +98,13 @@ font:
   - file: fonts/MatrixChunky8X.ttf
     id: default_font
     size: 8
-    glyphs:  |
+    glyphs: |-
       0123456789:.Sun MoTesWdhFriatAPJbpylgOcNvD오후전일월화수목금토요
     # Above covers Sun Mon Tues Wed Thu Fri Sat AM PM Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec as well as Korean Dates
   - file: fonts/MatrixLight8X.ttf
     id: message_font
     size: 8
-    glyphs:  |
+    glyphs: |-
       %0123456789 EHLPClock.DatenfWiONI:SpTAr
     # Above should cover the system messages: "EHLPClock . / Wifi Off / No Wifi / IP: / Date on / Date off / StopSeek / Seek... / OTA % / Done / Error"
 
@@ -158,19 +140,27 @@ api:
   reboot_timeout: 0s # Must be disabled to allow the Wifi enable/disable to function
 
 mdns:
-  disabled: false # needs to be on to connect to HA
+  disabled: False # needs to be on to connect to HA
 
-# Enable logging (and stops the various sensors/switches from spamming the log)
-# Note that increasing the level uses up memory (which this device has very little available) and may cause errors and/or crashing
 logger:
-  level: DEBUG
-  logs:
-    sensor: ERROR
-    text_sensor: NONE
-    switch: NONE
-    light: NONE
-    number: NONE
-    rtttl: NONE
+  level: NONE
+# Logging is disabled to save memory but you can easily enable logging (and stop the various sensors/switches from spamming the log) by deleting the above line and uncommening the lines below
+# Note that increasing the level uses up memory (which this device has very little available) and may cause errors and/or crashing - please note it's also disabled in the web_server section
+#  level: DEBUG
+#  logs:
+#    sensor: ERROR
+#    text_sensor: NONE
+#    switch: NONE
+#    light: NONE
+#    number: NONE
+
+web_server:
+  port: 80
+  ota: True
+  include_internal: False # True will expose more than needed to the Web UI
+  version: 2 # version 3 is much larger but possible if local is False
+  local: True # will download www.js and serve it directly from the clock
+  log: False # disabling in the WebUI to save memory
 
 ota:
   - platform: esphome
@@ -210,19 +200,12 @@ ota:
             format: "OTA update error %d"
             args: ["x"]
 
-web_server:
-  port: 80
-  ota: true
-#  include_internal: true # probably not necessary, as it will expose more than needed to the Web UI
-  version: 2
-  local: true # will download www.js and serve it directly from the clock
-
 captive_portal:
 
 text_sensor:
   - platform: version
     name: "${friendly_name} ESPHome Version"
-    hide_timestamp: true
+    hide_timestamp: True
     entity_category: diagnostic
   - platform: wifi_info
     ip_address:
@@ -250,14 +233,14 @@ text_sensor:
     name: "${friendly_name} Replacement Time Text"
     entity_category: diagnostic
     update_interval: never
-    internal: true
+    internal: True
     filters:
       - lambda: |-
           // Korean generally puts the 오후/오전 before the time, so let's just use a different format entirely "%p%l%M" (PM1:25) and run a substitute on it
-          if (id(hour12_mode) == 1) {
+          if (id(hour12_mode).state == 1) {
             int offset = 0;
-            if (id(tzoffset_on) != 0) {
-              offset = (int)(60 * 60 * (id(tzoffset)));
+            if (id(tzoffset_on).state != 0) {
+              offset = (int)(60 * 60 * (id(tzoffset).state));
             }
             std::time_t tz1time = (id(my_time).now().timestamp + offset);
             std::tm *tz1time_astm = localtime(&tz1time);
@@ -278,7 +261,7 @@ text_sensor:
     name: "${friendly_name} Replacement Date Text"
     entity_category: diagnostic
     update_interval: never
-    internal: true
+    internal: True
     filters:
       - append: "일"
       - prepend: ""
@@ -300,7 +283,7 @@ text_sensor:
     name: "${friendly_name} Replacement Date A Text"
     entity_category: diagnostic
     update_interval: never
-    internal: true
+    internal: True
     filters:
       - append: ""
       - prepend: ""
@@ -318,14 +301,14 @@ output:
     id: statusled
     pin:
       number: ${status_led_pin}
-      inverted: true
+      inverted: True
 
 light:
   - platform: monochromatic
     id: led1
     name: "${friendly_name} Status LED"
     output: statusled
-    internal: true
+    internal: True
 
 preferences:
   flash_write_interval: 15s # 0 does immediate write to memory with no mem buffer (not recommended) (only saves when persistent variables have changed)
@@ -333,7 +316,7 @@ preferences:
 i2c:
   sda: ${sda_pin}
   scl: ${scl_pin}
-  scan: true
+  scan: True
   id: i2cbus
 
 spi:
@@ -347,7 +330,7 @@ binary_sensor:
   - platform: gpio
     pin: 
       number: ${download_button_pin}
-      inverted: true
+      inverted: True
     name: "${friendly_name} Download Button"
     filters:
       - delayed_on: 10ms
@@ -364,7 +347,7 @@ binary_sensor:
             then:
               - script.execute: display_off_deactivate
             else:
-              - switch.toggle: date_mode_select
+              - switch.toggle: date_display_mode
       #Double-Click will toggle 12-hour mode (or turn screen on again)
       - timing:
           - ON for at most 1s
@@ -378,7 +361,7 @@ binary_sensor:
             then:
               - script.execute: display_off_deactivate
             else:
-              - switch.toggle: hour12_select
+              - switch.toggle: hour12_mode
       #Click once, then Hold will toggle TZ Offset (or turn screen on again)
       - timing:
           - ON for at most 1s
@@ -391,7 +374,7 @@ binary_sensor:
             then:
               - script.execute: display_off_deactivate
             else:
-              - switch.toggle: tzoffset_on_select
+              - switch.toggle: tzoffset_on
       #Hold 2s will show the IP (or other wifi status) (or turn screen on again)
       - timing:
           - ON for at least 2s
@@ -414,11 +397,11 @@ binary_sensor:
             then:
               - script.execute: display_off_deactivate
             else:
-              - switch.toggle: wifi_stop_seek_select
+              - switch.toggle: wifi_stop_seek
   - platform: gpio
     pin: 
       number: ${rotation_pin}
-      inverted: true
+      inverted: True
     name: "${friendly_name} Rotation Mode"
     id: rotation_mode
     on_state:
@@ -435,7 +418,7 @@ display:
     cs_pin: ${cs_pin}
     num_chips: 4
     update_interval: 1s
-    reverse_enable: true # true for button-side up / false for down (be warned that if you change these 2 settings you may get a garbled display)
+    reverse_enable: True # true for button-side up / false for down (be warned that if you change these 2 settings you may get a garbled display)
     rotate_chip: 0 # 0 for button-side up (default) / 180 for down (you could switch them but then I would recommend go change the inverted settting for the gpio)
     scroll_mode: continuous
     lambda: |-
@@ -463,20 +446,20 @@ display:
             }
             // apply offset if needed https://community.home-assistant.io/t/multiple-time-zones/435315/12
             int offset = 0;
-            if (id(tzoffset_on) != false) {
-              offset = (int)(60 * 60 * (id(tzoffset)));
+            if (id(tzoffset_on).state != false) {
+              offset = (int)(60 * 60 * (id(tzoffset).state));
             }
             std::time_t tz1time = (id(my_time).now().timestamp + offset);
             std::tm *tz1time_astm = localtime(&tz1time);
             char display_tmdt[20];
             // check if the date should be displayed
-            if ((id(time_display_count) >= (id(time_display_time))) && (id(date_display_mode) != false)) {
+            if ((id(time_display_count) >= (id(time_display_time).state)) && (id(date_display_mode).state != false)) {
               id(date_display_count) += 1;
               // if date_formatA is on, display it for 50% of the time first, after the 1st...
-              if ((id(date_A_mode) == true) && (id(date_display_count) <= (id(date_display_time) / 2))) {
+              if ((id(date_A_mode).state == true) && (id(date_display_count) <= (id(date_display_time).state / 2))) {
                 strftime(display_tmdt, 20, "${date_formatA}", tz1time_astm);
                 // check if Date A text replacement should be made
-                if (id(replace_mode_auto) == true) {
+                if (id(replace_mode_auto).state == true) {
                   std::string tmdt(display_tmdt);
                   id(dateA_text).publish_state(tmdt);
                   strcpy(display_tmdt, id(dateA_text).state.c_str());
@@ -484,7 +467,7 @@ display:
               } else {
                 strftime(display_tmdt, 20, "${date_format}", tz1time_astm);
                 // check if Date text replacement should be made
-                if (id(replace_mode_auto) == true) {
+                if (id(replace_mode_auto).state == true) {
                   std::string tmdt(display_tmdt);
                   id(date_text).publish_state(tmdt);
                   strcpy(display_tmdt, id(date_text).state.c_str());
@@ -494,13 +477,13 @@ display:
               id(date_display_count) = 0;
               id(time_display_count) += 1;
               // choose which time format to display
-              if (id(hour12_mode) == true) {
+              if (id(hour12_mode).state == true) {
                 strftime(display_tmdt, 20, "${time_format12}", tz1time_astm);
               } else {
                 strftime(display_tmdt, 20, "${time_format24}", tz1time_astm);
               }
               // check if Time text replacement should be made
-              if (id(replace_mode_auto) == true) {
+              if (id(replace_mode_auto).state == true) {
                 std::string tmdt(display_tmdt);
                 id(time_text).publish_state(tmdt);
                 strcpy(display_tmdt, id(time_text).state.c_str());
@@ -508,14 +491,14 @@ display:
             }
             // print the date / time
             it.printf((32 / 2), (8 / 2), id(default_font), TextAlign::CENTER, "%s", display_tmdt);
-            if (((id(date_display_count) >= id(date_display_time)) && (id(date_display_mode) != false)) || ((id(time_display_count) >= id(time_display_time)) && (id(date_display_mode) == false))) {
+            if (((id(date_display_count) >= id(date_display_time).state) && (id(date_display_mode).state != false)) || ((id(time_display_count) >= id(time_display_time).state) && (id(date_display_mode).state == false))) {
               id(time_display_count) = 0;
               // check if Replace Interval is active, count or reset, when date display is finished - or after the interval, depending
-              if (id(replace_interval) > 0) {
+              if (id(replace_interval).state > 0) {
                 id(replace_interval_count) += 1;
-                if (id(replace_interval_count) >= id(replace_interval)) {
+                if (id(replace_interval_count) >= id(replace_interval).state) {
                   id(replace_interval_count) = 0;
-                  id(replace_mode_auto) = (! id(replace_mode_auto));
+                  id(replace_mode_auto).toggle();
               }
             }
           }
@@ -529,7 +512,7 @@ display:
       if (id(display_off)) {
         it.clear();
       } else {
-        it.intensity(id(brightness_level));
+        it.intensity(id(brightness).state);
       }
       // This next section allows the rotation sensor to work - need to directly change settings in the component: https://esphome.io/api/max7219_8h
       if (id(rotation_mode).state == true) {
@@ -545,29 +528,29 @@ interval:
     then:
       - lambda: |-
           id(sync_time_count) += 1;
-          if (id(sync_time_count) >= (id(sync_time) * 60)) {
+          if (id(sync_time_count) >= (id(sync_time).state * 60)) {
             id(sync_time_count) = 0;
             id(sync_the_time).execute();
           }
   - interval: 1s # check if the wifi should be turned off, and if so, do it (or turn on if stop seek has been disabled) and blink led while seeking wifi, and check if display off should be activated
     then:
       - lambda: |-
-          if (id(wifi_stop_seek) == true && !id(wifi_id).is_connected() && !id(wifi_id).is_disabled()){
+          if (id(wifi_stop_seek).state == true && !id(wifi_id).is_connected() && !id(wifi_id).is_disabled()){
             id(wifi_stop_seek_time_count) += 1;
-            if (id(wifi_stop_seek_time_count) >= id(wifi_stop_seek_time) + 60) {
+            if (id(wifi_stop_seek_time_count) >= id(wifi_stop_seek_time).state) {
               id(wifi_stop_seek_time_count) = 0;
               id(wifi_id)->disable();
               id(display_ip).press();
             }
           }
-          if (id(wifi_stop_seek) == false && id(wifi_id).is_disabled()) {
+          if (id(wifi_stop_seek).state == false && id(wifi_id).is_disabled()) {
             id(wifi_stop_seek_time_count) = 0;
             id(wifi_id)->enable();
             id(display_ip).press();
           }
           if (!id(wifi_id).is_connected() && !id(wifi_id).is_disabled()) {
             id(seek_blink_led) += 1;
-            if (id(wifi_stop_seek) == false) {
+            if (id(wifi_stop_seek).state == false) {
               if (id(seek_blink_led) % 1 == 0) {
                 auto call = id(led1).toggle();
                 call.perform();
@@ -584,141 +567,76 @@ interval:
               call.perform();
           }
           if (id(my_time).now().is_valid() && !id(display_off)) {
-            if (id(display_off_no_wifi_time) != 0 || id(display_off_time) != 0) {
+            if (id(display_off_no_wifi_time).state != 0 || id(display_off_time).state != 0) {
               id(display_off_time_count) = id(display_off_time_count) + 1;
             }
-            if ((id(display_off_time) != 0 && id(display_off_time_count) >= (id(display_off_time) * 60)) || (id(display_off_no_wifi_time) != 0 && id(display_off_time_count) >= id(display_off_no_wifi_time) && (!id(wifi_id).is_connected() || id(wifi_id).is_disabled()))) {
+            if ((id(display_off_time).state != 0 && id(display_off_time_count) >= (id(display_off_time).state * 60)) || (id(display_off_no_wifi_time).state != 0 && id(display_off_time_count) >= id(display_off_no_wifi_time).state && (!id(wifi_id).is_connected() || id(wifi_id).is_disabled()))) {
               id(display_off_activate).execute();
             }
           }
 
 globals:
-  - id: brightness_level
-    type: uint8_t
-    restore_value: true
-    initial_value: '1'
-  - id: hour12_mode
-    type: bool
-    restore_value: true
-    initial_value: 'false'
-  - id: date_A_mode
-    type: bool
-    restore_value: true
-    initial_value: 'false'
-  - id: replace_mode
-    type: bool
-    restore_value: true
-    initial_value: 'false'
-  - id: replace_mode_auto
-    type: bool
-    restore_value: false
-    initial_value: 'false'
-  - id: replace_interval
-    type: uint8_t
-    restore_value: true
-    initial_value: '0'
   - id: replace_interval_count
     type: uint8_t
-    restore_value: false
+    restore_value: False
     initial_value: '0'
   - id: message
     type: std::string
-    restore_value: false
+    restore_value: False
     initial_value: ''
   - id: message_display_time
     type: uint8_t
-    restore_value: false
+    restore_value: False
     initial_value: '0'
   - id: message_clock_time
     type: uint8_t
-    restore_value: false
+    restore_value: False
     initial_value: '0'
   - id: message_alive_time
     type: uint8_t
-    restore_value: false
+    restore_value: False
     initial_value: '0'
   - id: message_display_time_count
     type: uint8_t
-    restore_value: false
+    restore_value: False
     initial_value: '0'
   - id: message_clock_time_count
     type: uint8_t
-    restore_value: false
+    restore_value: False
     initial_value: '0'
   - id: message_alive_time_count
     type: uint8_t
-    restore_value: false
+    restore_value: False
     initial_value: '0'
-  - id: date_display_mode
-    type: bool
-    restore_value: true
-    initial_value: 'false'
-  - id: time_display_time
-    type: uint8_t
-    restore_value: true
-    initial_value: '11'
-  - id: date_display_time
-    type: uint8_t
-    restore_value: true
-    initial_value: '4'
   - id: time_display_count
     type: uint8_t
-    restore_value: false
+    restore_value: False
     initial_value: '0'
   - id: date_display_count
     type: uint8_t
-    restore_value: false
+    restore_value: False
     initial_value: '0'
-  - id: sync_time
-    type: uint8_t
-    restore_value: false
-    initial_value: '8'
   - id: sync_time_count
     type: uint8_t
-    restore_value: false
+    restore_value: False
     initial_value: '0'
-# TZ Offset Variables
-  - id: tzoffset
-    type: int8_t
-    restore_value: true
-    initial_value: '0'
-  - id: tzoffset_on
-    type: bool
-    restore_value: true
-    initial_value: 'false'
 # Wifi Stop Seek Variables
-  - id: wifi_stop_seek
-    type: bool
-    restore_value: true
-    initial_value: 'false'
-  - id: wifi_stop_seek_time
-    type: uint8_t
-    restore_value: false
-    initial_value: '120'
   - id: wifi_stop_seek_time_count
     type: uint8_t
-    restore_value: false
+    restore_value: False
     initial_value: '0'
   - id: seek_blink_led
     type: uint8_t
-    restore_value: false
+    restore_value: False
     initial_value: '0'
 # Display Off Variables
   - id: display_off
     type: bool
-    restore_value: false
+    restore_value: False
     initial_value: 'false'
-  - id: display_off_time
-    type: uint8_t
-    restore_value: true
-    initial_value: '0'
   - id: display_off_time_count
     type: uint16_t
-    restore_value: false
-    initial_value: '0'
-  - id: display_off_no_wifi_time
-    type: uint8_t
-    restore_value: true
+    restore_value: False
     initial_value: '0'
 
 button:
@@ -729,7 +647,7 @@ button:
   - platform: template
     id: display_ip
     name: "Display IP Address"
-    internal: true
+    internal: True
     entity_category: diagnostic
     on_press:
       - if:
@@ -756,82 +674,70 @@ button:
 switch:
   - platform: template
     name: "${friendly_name} 12 Hour Mode"
-    id: hour12_select
+    id: hour12_mode
     restore_mode: RESTORE_DEFAULT_OFF
-    lambda: 'return id(hour12_mode);'
+    optimistic: True
     turn_on_action:
         - lambda: |-
             ESP_LOGD("main", "12 Hour Mode On");
-            id(hour12_mode) = true;
     turn_off_action:
         - lambda: |-
             ESP_LOGD("main", "12 Hour Mode Off");
-            id(hour12_mode) = false;
   - platform: template
     name: "${friendly_name} Date A Mode"
-    id: date_A_select
+    id: date_A_mode
     restore_mode: RESTORE_DEFAULT_OFF
-    lambda: 'return id(date_A_mode);'
     turn_on_action:
         - lambda: |-
             ESP_LOGD("main", "Date A Mode On");
-            id(date_A_mode) = true;
     turn_off_action:
         - lambda: |-
-            ESP_LOGD("main", "Date A Mode Off");
-            id(date_A_mode) = false;
   - platform: template
     name: "${friendly_name} Replacement Mode"
-    id: replace_mode_select
+    id: replace_mode
     restore_mode: RESTORE_DEFAULT_OFF
-    lambda: 'return id(replace_mode);'
+    optimistic: True
     turn_on_action:
         - lambda: |-
             ESP_LOGD("main", "Replace Mode On");
-            id(replace_mode) = true;
-            id(replace_mode_auto_select).turn_on();
-            auto call = id(replace_interval_select).make_call();
+            id(replace_mode_auto).turn_on();
+            auto call = id(replace_interval).make_call();
             call.set_value(0);
             call.perform();
     turn_off_action:
         - lambda: |-
             ESP_LOGD("main", "Replace Mode Off");
-            id(replace_mode) = false;
-            id(replace_mode_auto_select).turn_off();
+            id(replace_mode_auto).turn_off();
   - platform: template
-    id: replace_mode_auto_select
-    restore_mode: DISABLED
-    internal: true
+    id: replace_mode_auto
+    restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: True
+    internal: True
     turn_on_action:
         - lambda: |-
             ESP_LOGD("main", "Replace Mode Auto On");
-            id(replace_mode_auto) = true;
     turn_off_action:
         - lambda: |-
             ESP_LOGD("main", "Replace Mode Auto Off");
-            id(replace_mode_auto) = false;
   - platform: template
     name: "${friendly_name} Time Zone Offset On"
-    id: tzoffset_on_select
+    id: tzoffset_on
     restore_mode: RESTORE_DEFAULT_OFF
-    lambda: 'return id(tzoffset_on);'
+    optimistic: True
     turn_on_action:
         - lambda: |-
             ESP_LOGD("main", "TZ Offset On");
-            id(tzoffset_on) = true;
     turn_off_action:
         - lambda: |-
             ESP_LOGD("main", "TZ Offset Off");
-            id(tzoffset_on) = false;
   - platform: template
     name: "${friendly_name} Date Display Mode"
-    id: date_mode_select
+    id: date_display_mode
     restore_mode: RESTORE_DEFAULT_OFF
-    lambda: 'return id(date_display_mode);'
+    optimistic: True
     turn_on_action:
         - lambda: |-
             ESP_LOGD("main", "Date on");
-            id(date_display_mode) = true;
             id(message) = ("Date on");
             id(message_alive_time) = 1;
             id(message_display_time) = 1;
@@ -839,21 +745,19 @@ switch:
     turn_off_action:
         - lambda: |-
             ESP_LOGD("main", "Date off");
-            id(date_display_mode) = false;
             id(message) = ("Date off");
             id(message_alive_time) = 1;
             id(message_display_time) = 1;
             id(message_clock_time) = 0;
   - platform: template
     name: "${friendly_name} Wifi Stop Seek"
-    id: wifi_stop_seek_select
+    id: wifi_stop_seek
     restore_mode: RESTORE_DEFAULT_OFF
-    lambda: 'return id(wifi_stop_seek);'
+    optimistic: True
     turn_on_action:
         - delay: 1s
         - lambda: |-
             ESP_LOGD("main", "Wifi Stop Seek on");
-            id(wifi_stop_seek) = true;
             id(message) = ("StopSeek");
             id(message_alive_time) = 1;
             id(message_display_time) = 1;
@@ -862,7 +766,6 @@ switch:
         - delay: 1s
         - lambda: |-
             ESP_LOGD("main", "Wifi Stop Seek off");
-            id(wifi_stop_seek) = false;
             id(message) = ("Seek...");
             id(message_alive_time) = 1;
             id(message_display_time) = 1;
@@ -871,9 +774,9 @@ switch:
 number:
   - platform: template
     name: "${friendly_name} Brightness"
-    id: brightness_select
-    restore_value: true
-    optimistic: true
+    id: brightness
+    restore_value: True
+    optimistic: True
     step: 1
     min_value: 0
     max_value: 15
@@ -882,13 +785,12 @@ number:
     set_action:
       then:
         - lambda: |-
-            id(brightness_level) = x;
-            ESP_LOGD("main", "Brightness: %d", id(brightness_level));
+            ESP_LOGD("main", "Brightness: %.0f", x);
   - platform: template
     name: "${friendly_name} Time Display Time"
-    id: time_display_time_select
-    restore_value: true
-    optimistic: true
+    id: time_display_time
+    restore_value: True
+    optimistic: True
     step: 1
     min_value: 1
     max_value: 60
@@ -898,13 +800,12 @@ number:
     set_action:
       then:
         - lambda: |-
-            id(time_display_time) = x;
-            ESP_LOGD("main", "Time Display Time: %d seconds", id(time_display_time));
+            ESP_LOGD("main", "Time Display Time: %.0f seconds", x);
   - platform: template
     name: "${friendly_name} Date Display Time"
-    id: date_display_time_select
-    restore_value: true
-    optimistic: true
+    id: date_display_time
+    restore_value: True
+    optimistic: True
     step: 1
     min_value: 1
     max_value: 60
@@ -914,13 +815,12 @@ number:
     set_action:
       then:
         - lambda: |-
-            id(date_display_time) = x;
-            ESP_LOGD("main", "Date Display Time: %d seconds", id(date_display_time));
+            ESP_LOGD("main", "Date Display Time: %.0f seconds", x);
   - platform: template
     name: "${friendly_name} Auto Replacement Interval"
-    id: replace_interval_select
-    restore_value: true
-    optimistic: true
+    id: replace_interval
+    restore_value: True
+    optimistic: True
     step: 1
     min_value: 0
     max_value: 10
@@ -930,18 +830,15 @@ number:
     set_action:
       then:
         - lambda: |-
-            id(replace_interval) = x;
-            ESP_LOGD("main", "Auto Replacement Interval: %d", id(replace_interval));
-            if (id(replace_interval) > 0) {
-              if (id(replace_mode) == true) {
-                id(replace_mode_select).turn_off();  // was on
-              }
+            ESP_LOGD("main", "Auto Replacement Interval: %.0f", x);
+            if (x > 0) {
+              id(replace_mode).turn_off();
             }
   - platform: template
     name: "${friendly_name} Time Zone Offset"
-    id: tzoffset_select
-    restore_value: true
-    optimistic: true
+    id: tzoffset
+    restore_value: True
+    optimistic: True
     step: 0.25
     min_value: -26
     max_value: 26
@@ -951,5 +848,66 @@ number:
     set_action:
       then:
         - lambda: |-
-            id(tzoffset) = x;
-            ESP_LOGD("main", "Time Zone Offset: %.2f hours", id(tzoffset));
+            ESP_LOGD("main", "Time Zone Offset: %.2f hours", x);
+  - platform: template
+    name: "${friendly_name} Time Sync Interval"
+    id: sync_time
+    restore_value: True
+    optimistic: True
+    step: 1
+    min_value: 1
+    max_value: 24
+    initial_value: 8
+    mode: box
+    unit_of_measurement: hours
+    set_action:
+      then:
+        - lambda: |-
+            ESP_LOGD("main", "Time Sync Interval: %.0f hours", x);
+  - platform: template
+    name: "${friendly_name} Wifi Stop Seek Time"
+    id: wifi_stop_seek_time
+    restore_value: True
+    optimistic: True
+    step: 1
+    min_value: 1
+    max_value: 60
+    initial_value: 180
+    mode: box
+    unit_of_measurement: seconds
+    set_action:
+      then:
+        - lambda: |-
+            ESP_LOGD("main", "Wifi Stop Seek Time: %.0f seconds", x);
+  - platform: template
+    name: "${friendly_name} Display Off Time (0 Disable)"
+    id: display_off_time
+    restore_value: True
+    optimistic: True
+    step: 5
+    min_value: 0
+    max_value: 60
+    initial_value: 0
+    mode: box
+    unit_of_measurement: minutes
+    set_action:
+      then:
+        - lambda: |-
+            ESP_LOGD("main", "Display Off Time: %.0f minutes", x);
+        - script.execute: display_off_deactivate
+  - platform: template
+    name: "${friendly_name} Display Off When No Wifi Time (seconds) (0 Disable)"
+    id: display_off_no_wifi_time
+    restore_value: True
+    optimistic: True
+    step: 5
+    min_value: 0
+    max_value: 180
+    initial_value: 60
+    mode: box
+    unit_of_measurement: seconds
+    set_action:
+      then:
+        - lambda: |-
+            ESP_LOGD("main", "Display Off No Wifi Time: %.0f seconds", x);
+        - script.execute: display_off_deactivate
