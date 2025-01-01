@@ -18,7 +18,7 @@ These guides are proposed for the ESPHome documentation and if you find them hel
 
 ## New to Flashing a Device?
 
-Please read this: [Physically Connecting to your Device](https://esphome.io/guides/physical_device_connection).
+You can read this: [Physically Connecting to your Device](https://esphome.io/guides/physical_device_connection) but with this device, you can use it's inbuilt USB port.
 
 ## LED Matrix Clock
 
