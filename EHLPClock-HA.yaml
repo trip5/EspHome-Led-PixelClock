@@ -124,8 +124,10 @@ script:
       - lambda: 'id(my_time)->update();'
       - ds1307.write_time:
 
+# Enable Home Assistant API
 api:
-  encryption: # delete these 2 lines if you don't use encryption
+  # delete next 2 lines if not using HA API encryption
+  encryption:
     key: !secret encryption_key
   reboot_timeout: 15min # 15min is default
   # This next section creates the Home Assistant services to allow messages to be displayed (also used for certain system messages)

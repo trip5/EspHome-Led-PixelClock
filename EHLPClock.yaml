@@ -137,7 +137,11 @@ script:
           id(display_off_time_count) = 0;
           id(display_off) = false;
 
+# Enable Home Assistant API
 api:
+  # delete next 2 lines if not using HA API encryption
+  encryption:
+    key: !secret encryption_key
   reboot_timeout: 0s # Must be disabled to allow the Wifi enable/disable to function
 
 mdns:
