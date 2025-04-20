@@ -692,6 +692,7 @@ switch:
     name: "${friendly_name} Date A Mode"
     id: date_A_mode
     restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: True
     turn_on_action:
         - lambda: |-
             ESP_LOGD("main", "Date A Mode On");
