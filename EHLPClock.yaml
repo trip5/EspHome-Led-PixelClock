@@ -3,7 +3,7 @@ substitutions:
   name: led-pixelclock
   friendly_name: Led-PixelClock
   comment: "EHLPClock from Trip5"
-  project_version: "2024.12.09"
+  project_version: "2025.05.25"
   project_name: Trip5.EspHomeLedPixelClock
   waiting: " . EHLPClock . ." # shows when waiting for time
 
@@ -96,15 +96,13 @@ font:
   # How to get an easy glyphs list? Click here and edit the s = string to your needs: https://www.onlinegdb.com/fork/zh1VszNT1
   # It's the Java code from here: https://www.geeksforgeeks.org/cpp-program-to-remove-duplicates-from-a-given-string/
   # ...to here (OnlineGDB's Java handles Unicode a bit better than the C++ compiler): https://www.onlinegdb.com/online_java_compiler
-  - file: fonts/MatrixChunky8X.ttf
+  - file: fonts/MatrixChunky8X.bdf
     id: default_font
-    size: 8
     glyphs: |-
       0123456789:.Sun MoTesWdhFriatAPJbpylgOcNvD오후전일월화수목금토요
     # Above covers Sun Mon Tues Wed Thu Fri Sat AM PM Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec as well as Korean Dates
-  - file: fonts/MatrixLight8X.ttf
+  - file: fonts/MatrixLight8X.bdf
     id: message_font
-    size: 8
     glyphs: |-
       %0123456789 EHLPClock.DatenfWiONI:SpTAr
     # Above should cover the system messages: "EHLPClock . / Wifi Off / No Wifi / IP: / Date on / Date off / StopSeek / Seek... / OTA % / Done / Error"
@@ -225,12 +223,10 @@ text_sensor:
     name: "${friendly_name} ${project_name} Version"
     lambda: 'return to_string("${project_version}");'
     entity_category: diagnostic
-    update_interval: 1h
   - platform: template
     name: "${friendly_name} Time Zone"
     lambda: 'return {"${time_zone}"};'
     entity_category: diagnostic
-    update_interval: 1h
   # Below this point are text sensors to hold time and date and allow for substitutions... you can delete/edit the filters, just don't delete the entire text sensor
   # The github repo should also contain methods to change the time into other localized formats.
   - platform: template
@@ -241,16 +237,17 @@ text_sensor:
     internal: True
     filters:
       - lambda: |-
-          // Korean generally puts the 오후/오전 before the time, so let's just use a different format entirely "%p%l%M" (PM1:25) and run a substitute on it
+          // Use the format "%p%I:%M" (PM 1:25) and run filters on it to get 오후1:25
           if (id(hour12_mode).state == 1) {
             int offset = 0;
+            // delete next 3 lines if using the HA version...
             if (id(tzoffset_on).state != 0) {
               offset = (int)(60 * 60 * (id(tzoffset).state));
             }
             std::time_t tz1time = (id(my_time).now().timestamp + offset);
             std::tm *tz1time_astm = localtime(&tz1time);
             char display_tmdt[20];
-            strftime(display_tmdt, 20, "%p%l:%M", tz1time_astm);
+            strftime(display_tmdt, 20, "%p%I:%M", tz1time_astm);
             std::string tmdt(display_tmdt);
             return tmdt;
           } else {
@@ -259,6 +256,7 @@ text_sensor:
       - append: ""
       - prepend: ""
       - substitute:
+        - "M0 -> M" # removes leading 0 on Hours
         - "AM -> 오전"
         - "PM -> 오후"
   - platform: template
@@ -268,6 +266,19 @@ text_sensor:
     update_interval: never
     internal: True
     filters:
+      - lambda: |-
+          // Use the format "%b %d" (May 23) and run filters on it to get 05월 23일
+          int offset = 0;
+          // delete next 3 lines if using the HA version...
+          if (id(tzoffset_on).state != 0) {
+            offset = (int)(60 * 60 * (id(tzoffset).state));
+          }
+          std::time_t tz1time = (id(my_time).now().timestamp + offset);
+          std::tm *tz1time_astm = localtime(&tz1time);
+          char display_tmdt[20];
+          strftime(display_tmdt, 20, "%b %d", tz1time_astm);
+          std::string tmdt(display_tmdt);
+          return tmdt;
       - append: "일"
       - prepend: ""
       - substitute:
@@ -290,16 +301,29 @@ text_sensor:
     update_interval: never
     internal: True
     filters:
-      - append: ""
+      - lambda: |-
+          // Use the format "%a" (Fri) and run filters on it to get 금요일
+          int offset = 0;
+          // delete next 3 lines if using the HA version...
+          if (id(tzoffset_on).state != 0) {
+            offset = (int)(60 * 60 * (id(tzoffset).state));
+          }
+          std::time_t tz1time = (id(my_time).now().timestamp + offset);
+          std::tm *tz1time_astm = localtime(&tz1time);
+          char display_tmdt[20];
+          strftime(display_tmdt, 20, "%a", tz1time_astm);
+          std::string tmdt(display_tmdt);
+          return tmdt;
+      - append: "요일"
       - prepend: ""
       - substitute:
-        - "Sun -> 일요일"
-        - "Mon -> 월요일"
-        - "Tue -> 화요일"
-        - "Wed -> 수요일"
-        - "Thu -> 목요일"
-        - "Fri -> 금요일"
-        - "Sat -> 토요일"
+        - "Sun -> 일"
+        - "Mon -> 월"
+        - "Tue -> 화"
+        - "Wed -> 수"
+        - "Thu -> 목"
+        - "Fri -> 금"
+        - "Sat -> 토"
 
 output:
   - platform: esp8266_pwm
@@ -698,6 +722,7 @@ switch:
             ESP_LOGD("main", "Date A Mode On");
     turn_off_action:
         - lambda: |-
+            ESP_LOGD("main", "Date A Mode Off");
   - platform: template
     name: "${friendly_name} Replacement Mode"
     id: replace_mode

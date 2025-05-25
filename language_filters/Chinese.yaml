@@ -1,29 +1,22 @@
-substitutions:
-# Based on the following time & date formats (24 hour format should be unaffected):
-  time_format12: "%l:%M%p" # 1:25PM
-  date_format: "%b %d" # Jan 01
-  date_formatA: "%a" # Mon
-
 font:
-  - file: fonts/MatrixChunky8X.ttf
+
+  - file: fonts/MatrixChunky8X.bdf
     id: default_font
-    size: 8
     glyphs: |-
       0123456789:.Sun MoTesWdhFriatAPJbpylgOcNvD上下午月一二三四五六七八九十星期天
     # Above covers Sun Mon Tues Wed Thu Fri Sat AM PM Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec as well as Chinese Dates/Times
 
 text_sensor:
+
   - platform: template
     id: time_text
-    name: "$friendly_name Replacement Time Text"
+    name: "${friendly_name} Replacement Time Text"
     entity_category: diagnostic
     update_interval: never
     internal: true
     filters:
-      - append: ""
-      - prepend: ""
-      - substitute:
-          // Chinese generally puts the 上午/下午 before the time, so let's just use a different format entirely "%p%l%M" (PM1:25) and run a substitute on it
+      - lambda: |-
+          // Use the format "%p%I:%M" (PM 1:25) and run filters on it to get 下午1:25
           if (id(hour12_mode).state == 1) {
             int offset = 0;
             // delete next 3 lines if using the HA version...
@@ -33,24 +26,87 @@ text_sensor:
             std::time_t tz1time = (id(my_time).now().timestamp + offset);
             std::tm *tz1time_astm = localtime(&tz1time);
             char display_tmdt[20];
-            strftime(display_tmdt, 20, "%p%l:%M", tz1time_astm);
+            strftime(display_tmdt, 20, "%p%I:%M", tz1time_astm);
             std::string tmdt(display_tmdt);
             return tmdt;
           } else {
             return x;
           }
+      - append: ""
+      - prepend: ""
+      - substitute:
+        - "M0 -> M" # removes leading 0 on Hours
         - "AM -> 上午"
         - "PM -> 下午"
   - platform: template
     id: date_text
-    name: "$friendly_name Replacement Date Text"
+    name: "${friendly_name} Replacement Date Text"
     entity_category: diagnostic
     update_interval: never
     internal: true
     filters:
-      - append: ""
+      - lambda: |-
+          // Use the format "%b %d" (May 23) and run filters on it to get 5月23日 or 五月二十三日 or 五月23日
+          int offset = 0;
+          // delete next 3 lines if using the HA version...
+          if (id(tzoffset_on).state != 0) {
+            offset = (int)(60 * 60 * (id(tzoffset).state));
+          }
+          std::time_t tz1time = (id(my_time).now().timestamp + offset);
+          std::tm *tz1time_astm = localtime(&tz1time);
+          char display_tmdt[20];
+          strftime(display_tmdt, 20, "%b %d", tz1time_astm);
+          std::string tmdt(display_tmdt);
+          return tmdt;
+      - append: "日"
       - prepend: ""
       - substitute:
+        # you can use the following to get 5月23日
+        - "Jan -> 1月"
+        - "Feb -> 2月"
+        - "Mar -> 3月"
+        - "Apr -> 4月"
+        - "May -> 5月"
+        - "Jun -> 6月"
+        - "Jul -> 7月"
+        - "Aug -> 8月"
+        - "Sep -> 9月"
+        - "Oct -> 10月"
+        - "Nov -> 11月"
+        - "Dec -> 12月"
+        # you can use the following to get 五月二十三日 (include the 5月23日 section too and make sure to add Chinese numerals above)
+        - "31 -> 三十一"
+        - "30 -> 三十"
+        - "29 -> 二十九"
+        - "28 -> 二十八"
+        - "27 -> 二十七"
+        - "26 -> 二十六"
+        - "25 -> 二十五"
+        - "24 -> 二十四"
+        - "23 -> 二十三"
+        - "22 -> 二十二"
+        - "21 -> 二十一"
+        - "20 -> 二十"
+        - "19 -> 二十九"
+        - "18 -> 二十八"
+        - "17 -> 二十七"
+        - "16 -> 二十六"
+        - "15 -> 二十五"
+        - "14 -> 二十四"
+        - "13 -> 二十三"
+        - "12 -> 二十二"
+        - "11 -> 十一"
+        - "10 -> 十"
+        - "9 -> 九"
+        - "8 -> 八"
+        - "7 -> 七"
+        - "6 -> 六"
+        - "5 -> 五"
+        - "4 -> 四"
+        - "3 -> 三"
+        - "2 -> 二"
+        - "1 -> 一"
+        # you can use the following to get 五月 23日 (in which case delete both the 5月23日 section and 五月 二十三日 section)
         - "Jan -> 一月"
         - "Feb -> 二月"
         - "Mar -> 三月"
@@ -65,18 +121,31 @@ text_sensor:
         - "Dec -> 十二月"
   - platform: template
     id: dateA_text
-    name: "$friendly_name Replacement Date A Text"
+    name: "${friendly_name} Replacement Date A Text"
     entity_category: diagnostic
     update_interval: never
     internal: true
     filters:
+      - lambda: |-
+          // Use the format "%a" to get the short day of the week and run filters on it
+          int offset = 0;
+          // delete next 3 lines if using the HA version...
+          if (id(tzoffset_on).state != 0) {
+            offset = (int)(60 * 60 * (id(tzoffset).state));
+          }
+          std::time_t tz1time = (id(my_time).now().timestamp + offset);
+          std::tm *tz1time_astm = localtime(&tz1time);
+          char display_tmdt[20];
+          strftime(display_tmdt, 20, "%a", tz1time_astm);
+          std::string tmdt(display_tmdt);
+          return tmdt;
       - append: ""
-      - prepend: ""
+      - prepend: "星期"
       - substitute:
-        - "Sun -> 星期天"
-        - "Mon -> 星期一"
-        - "Tue -> 星期二"
-        - "Wed -> 星期三"
-        - "Thu -> 星期四"
-        - "Fri -> 星期五"
-        - "Sat -> 星期六"
+        - "Sun -> 天"
+        - "Mon -> 一"
+        - "Tue -> 二"
+        - "Wed -> 三"
+        - "Thu -> 四"
+        - "Fri -> 五"
+        - "Sat -> 六"

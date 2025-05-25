@@ -1,37 +1,67 @@
-substitutions:
-# Based on the following time & date formats:
-  time_format12: "%l:%M%p" # 1:25PM
-  date_format: "%b %d" # Jan 01
-  date_formatA: "%a" # Mon
-
 font:
-  - file: fonts/MatrixChunky8X.ttf
+
+  - file: fonts/MatrixChunky8X.bdf
     id: default_font
-    size: 8
     glyphs: |-
       0123456789:.Sun MoTesWdhFriatAPJbpylgOcNvDΙανΦεβΜάρΑπιούλγΣΟκτΝέΔΚυΤίΠμ
     # Above covers Sun Mon Tues Wed Thu Fri Sat AM PM Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec as well as Greek months/days
 
+# Special notes:
+# Greek has not been eyeballed by an actual Greek person - if you can help, thank you!
+
 text_sensor:
+
   - platform: template
     id: time_text
-    name: "$friendly_name Replacement Time Text"
+    name: "${friendly_name} Replacement Time Text"
     entity_category: diagnostic
     update_interval: never
     internal: true
     filters:
+      - lambda: |-
+          // Use the format "!%H:%M%p" (!01:25PM) and run filters on it to get 1:25πμ
+          if (id(hour12_mode).state == 1) {
+            int offset = 0;
+            // delete next 3 lines if using the HA version...
+            if (id(tzoffset_on).state != 0) {
+              offset = (int)(60 * 60 * (id(tzoffset).state));
+            }
+            std::time_t tz1time = (id(my_time).now().timestamp + offset);
+            std::tm *tz1time_astm = localtime(&tz1time);
+            char display_tmdt[20];
+            strftime(display_tmdt, 20, "%p%l:%M", tz1time_astm);
+            std::string tmdt(display_tmdt);
+            return tmdt;
+          } else {
+            return x;
+          }
       - append: ""
       - prepend: ""
       - substitute:
+        - "!0 -> " # removes leading 0 on Hours
         - "AM -> πμ"
         - "PM -> μμ"
+        - "! -> " # keep this at the end
   - platform: template
     id: date_text
-    name: "$friendly_name Replacement Date Text"
+    name: "${friendly_name} Replacement Date Text"
     entity_category: diagnostic
     update_interval: never
     internal: true
     filters:
+      - lambda: |-
+          // Use the format "%d %b" (23 May) and run filters on it to get 23 Μάι
+          int offset = 0;
+          // delete next 3 lines if using the HA version...
+          if (id(tzoffset_on).state != 0) {
+            offset = (int)(60 * 60 * (id(tzoffset).state));
+          }
+          std::time_t tz1time = (id(my_time).now().timestamp + offset);
+          std::tm *tz1time_astm = localtime(&tz1time);
+          char display_tmdt[20];
+          strftime(display_tmdt, 20, "%d %b", tz1time_astm);
+          std::string tmdt(display_tmdt);
+          return tmdt;
       - append: ""
       - prepend: ""
       - substitute:
@@ -49,11 +79,24 @@ text_sensor:
         - "Dec -> Δεκ"
   - platform: template
     id: dateA_text
-    name: "$friendly_name Replacement Date A Text"
+    name: "${friendly_name} Replacement Date A Text"
     entity_category: diagnostic
     update_interval: never
     internal: true
     filters:
+      - lambda: |-
+          // Use the format "%a" (Fri) and run filters on it to get Παρ
+          int offset = 0;
+          // delete next 3 lines if using the HA version...
+          if (id(tzoffset_on).state != 0) {
+            offset = (int)(60 * 60 * (id(tzoffset).state));
+          }
+          std::time_t tz1time = (id(my_time).now().timestamp + offset);
+          std::tm *tz1time_astm = localtime(&tz1time);
+          char display_tmdt[20];
+          strftime(display_tmdt, 20, "%a", tz1time_astm);
+          std::string tmdt(display_tmdt);
+          return tmdt;
       - append: ""
       - prepend: ""
       - substitute:

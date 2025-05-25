@@ -1,27 +1,22 @@
-substitutions:
-# Based on the following time & date formats:
-  time_format12: "%l:%M%p" # 1:25PM
-  date_format: "%b %d" # Jan 01
-  date_formatA: "%a" # Mon
-
 font:
-  - file: fonts/MatrixChunky8X.ttf
+
+  - file: fonts/MatrixChunky8X.bdf
     id: default_font
-    size: 8
     glyphs: |-
       0123456789:.Sun MoTesWdhFriatAPJbpylgOcNvD오후전일월화수목금토요
     # Above covers Sun Mon Tues Wed Thu Fri Sat AM PM Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec as well as Korean Dates/Times
 
 text_sensor:
+
   - platform: template
     id: time_text
-    name: "$friendly_name Replacement Time Text"
+    name: "${friendly_name} Replacement Time Text"
     entity_category: diagnostic
     update_interval: never
-    internal: true
+    internal: True
     filters:
       - lambda: |-
-          // Korean generally puts the 오후/오전 before the time, so let's just use a different format entirely "%p%l%M" (PM1:25) and run a substitute on it
+          // Use the format "%p%I:%M" (PM 1:25) and run filters on it to get 오후1:25
           if (id(hour12_mode).state == 1) {
             int offset = 0;
             // delete next 3 lines if using the HA version...
@@ -31,7 +26,7 @@ text_sensor:
             std::time_t tz1time = (id(my_time).now().timestamp + offset);
             std::tm *tz1time_astm = localtime(&tz1time);
             char display_tmdt[20];
-            strftime(display_tmdt, 20, "%p%l:%M", tz1time_astm);
+            strftime(display_tmdt, 20, "%p%I:%M", tz1time_astm);
             std::string tmdt(display_tmdt);
             return tmdt;
           } else {
@@ -40,15 +35,29 @@ text_sensor:
       - append: ""
       - prepend: ""
       - substitute:
+        - "M0 -> M" # removes leading 0 on Hours
         - "AM -> 오전"
         - "PM -> 오후"
   - platform: template
     id: date_text
-    name: "$friendly_name Replacement Date Text"
+    name: "${friendly_name} Replacement Date Text"
     entity_category: diagnostic
     update_interval: never
-    internal: true
+    internal: True
     filters:
+      - lambda: |-
+          // Use the format "%b %d" (May 23) and run filters on it to get 05월 23일
+          int offset = 0;
+          // delete next 3 lines if using the HA version...
+          if (id(tzoffset_on).state != 0) {
+            offset = (int)(60 * 60 * (id(tzoffset).state));
+          }
+          std::time_t tz1time = (id(my_time).now().timestamp + offset);
+          std::tm *tz1time_astm = localtime(&tz1time);
+          char display_tmdt[20];
+          strftime(display_tmdt, 20, "%b %d", tz1time_astm);
+          std::string tmdt(display_tmdt);
+          return tmdt;
       - append: "일"
       - prepend: ""
       - substitute:
@@ -66,18 +75,31 @@ text_sensor:
         - "Dec -> 12월"
   - platform: template
     id: dateA_text
-    name: "$friendly_name Replacement Date A Text"
+    name: "${friendly_name} Replacement Date A Text"
     entity_category: diagnostic
     update_interval: never
-    internal: true
+    internal: True
     filters:
-      - append: ""
+      - lambda: |-
+          // Use the format "%a" (Fri) and run filters on it to get 금요일
+          int offset = 0;
+          // delete next 3 lines if using the HA version...
+          if (id(tzoffset_on).state != 0) {
+            offset = (int)(60 * 60 * (id(tzoffset).state));
+          }
+          std::time_t tz1time = (id(my_time).now().timestamp + offset);
+          std::tm *tz1time_astm = localtime(&tz1time);
+          char display_tmdt[20];
+          strftime(display_tmdt, 20, "%a", tz1time_astm);
+          std::string tmdt(display_tmdt);
+          return tmdt;
+      - append: "요일"
       - prepend: ""
       - substitute:
-        - "Sun -> 일요일"
-        - "Mon -> 월요일"
-        - "Tue -> 화요일"
-        - "Wed -> 수요일"
-        - "Thu -> 목요일"
-        - "Fri -> 금요일"
-        - "Sat -> 토요일"
+        - "Sun -> 일"
+        - "Mon -> 월"
+        - "Tue -> 화"
+        - "Wed -> 수"
+        - "Thu -> 목"
+        - "Fri -> 금"
+        - "Sat -> 토"

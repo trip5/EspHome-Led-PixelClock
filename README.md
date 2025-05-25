@@ -8,6 +8,8 @@ Using this clock requires external font files.  I prefer my own [`MatrixClockFon
 
 Due to memory constraints on the ESP8266 these clocks use, I've decided to split the functions by how you may choose to use the clock.  Read below for more details.
 
+---
+
 ## New to ESPHome?
 
 Try following this step-by-step to get Docker onto your computer: [Beginner’s Guide to Installing ESPHome on Docker Desktop](https://deploy-preview-4411--esphome.netlify.app/guides/beginners_guide_docker_desktop)
@@ -16,9 +18,11 @@ And this to compile the YAML: [Beginner's Guide to Adding Devices](https://deplo
 
 These guides are proposed for the ESPHome documentation and if you find them helpful, it would be great if you could leave a comment in the [Pull Request](https://github.com/esphome/esphome-docs/pull/4411) to get them added to the ESPHome Docs officially.
 
-## New to Flashing a Device?
+### New to Flashing a Device?
 
 You can read this: [Physically Connecting to your Device](https://esphome.io/guides/physical_device_connection) but with this device, you can use it's inbuilt USB port.
+
+---
 
 ## LED Matrix Clock
 
@@ -34,6 +38,8 @@ Here is my clock, using the Matrix Font and a bit of paper sandwiched between th
 ### Flashing
 
 Flashing is dead-simple. Hold the 'Download' button while powering-on the clock or by pressing the reset button.
+
+---
 
 ## Using This firmware
 
@@ -101,6 +107,8 @@ Hopefully OnlineGDB hosts this [`Glyphs Helper`](https://www.onlinegdb.com/fork/
 ### Time Sync
 
 Time can be synced to the Internet at configurable intervals between 1 - 24 hours, provided the wifi network is connected.
+
+---
 
 ## Non-HA Version
 
@@ -177,14 +185,19 @@ This is added to the non-HA version by default.
 ```yaml
   local: true
 ```
+
 If you don't mind the device's WebUI being dependent on the Internet, you could remove this line.
 You could consider hosting the file on another machine in-house, too by using something like:
+
 ```yaml
   js_include: ""
   js_url: "http://192.168.1.1/esphome-www/www.js"
 ```
+
 Please note that for some reason, I'm not sure that the UI can be viewed from an Chrome-based mobile browser. Maybe my phone has an issue.
 It seems to work fine when viewing on a computer or an Apple phone. If you have information to share, I'd be glad to know why this is.
+
+---
 
 ## Home Assistant Version
 
@@ -228,6 +241,8 @@ Anything in `configuration.yaml` under the `template:` heading must now be moved
 The file [`template.yaml`](template.yaml) contains several examples how to add sensors that can be automatically shown by the clock.
 I personally use only one sensor in my Home Assistant and 2 clocks in the house get data from the same sensor but you can (of course) create a sensor for each individual clock.
 
+---
+
 ## Crashes?
 
 The memory of the ESP8266 on this clock is extremely limited. With these default yamls, I've found the devices often crash just when doing an OTA update.
@@ -250,10 +265,13 @@ sensor:
 ```
 I've found anything below 8kB available to the heap can cause constant crashes.
 
+---
+
 ## Update History
 
 | Date       | Release Notes    |
 | ---------- | ---------------- |
+| 2025.05.26 | Minor fixes, language filters updated |
 | 2024.12.09 | Recoded to remove many global variables, relying on numbers and switches where possible, hard-coded variables removed |
 | 2024.11.11 | OTA display status works, Display off added to regular version (hard-coded variables), power measurements complete |
 | 2024.10.29 | Some bug fixes, improvements to code, added hard-coded variables in regular version which should free up more memory for fonts |
@@ -266,6 +284,8 @@ I've found anything below 8kB available to the heap can cause constant crashes.
 | 2023.11.16 | Wifi Stop Seek, 2nd date screen, time zone offset, alt time zone |
 | 2023.10.22 | Show date on intervals |
 | 2023.09.10 | Basic functionality, HA integration, rotation |
+
+---
 
 ## Tasmota Notes
 
@@ -302,6 +322,8 @@ Backlog DisplayWidth 32; DisplayHeight 8; DisplayModel 19; DisplayMode 0; Displa
 
 Backlog Power 1; DisplayClock 1
 ```
+
+---
 
 ## Useful Links
 
