@@ -128,6 +128,26 @@ jobs:
           done
         done
         
+        # Clean up timezone offset code from HA versions
+        echo "🧹 Cleaning timezone offset code from HA versions..."
+        for ha_file in generated_yamls/EHLPClock-HA-*.yaml; do
+          if [ -f "$ha_file" ]; then
+            echo "Cleaning timezone references from $ha_file"
+            
+            # Remove the timezone offset if block and its contents
+            # This removes the entire if statement that contains tzoffset references
+            sed -i '/if (id(tzoffset_on)/,/^[[:space:]]*}/d' "$ha_file"
+            
+            # Also remove any standalone tzoffset references that might remain
+            sed -i '/tzoffset_on\|tzoffset\.state/d' "$ha_file"
+            
+            # Remove the comment line that mentions deleting for HA version
+            sed -i '/delete.*HA version/d' "$ha_file"
+            
+            echo "✅ Cleaned $ha_file"
+          fi
+        done
+        
         echo "� Generated firmware files:"
         ls -la firmware/ || echo "No firmware directory created"
     
