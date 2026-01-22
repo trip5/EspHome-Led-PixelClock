@@ -1,0 +1,256 @@
+name: Build ESPHome Firmware
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch all history for tags
+    
+    - name: Install yq
+      run: |
+        sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+        sudo chmod +x /usr/local/bin/yq
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install ESPHome
+      run: |
+        pip install esphome
+    
+    - name: Get version tag
+      id: get_version
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          # Manual trigger - extract version from EHLPClock.yaml
+          VERSION=$(yq eval '.substitutions.project_version' EHLPClock.yaml | tr -d '"')
+          TAG="${VERSION}"
+          echo "Extracted version from YAML: ${VERSION}"
+        else
+          # Tag push - get the tag
+          TAG=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG#v}
+          echo "Using git tag: ${TAG}"
+        fi
+        
+        echo "version=${VERSION}" >> $GITHUB_OUTPUT
+        echo "tag=${TAG}" >> $GITHUB_OUTPUT
+        echo "Final version: ${VERSION}"
+    
+    - name: Generate language variants
+      run: |
+        echo "🔄 Generating language-specific YAML files..."
+        
+        # Create output directory
+        mkdir -p generated_yamls
+        
+        # Prepare base file with improv_serial and remove secrets (for merging with languages)
+        echo "🔧 Preparing base YAML for language merging..."
+        cp EHLPClock.yaml generated_yamls/EHLPClock-base.yaml
+        cp EHLPClock-HA.yaml generated_yamls/EHLPClock-HA-base.yaml
+        
+        # Remove captive_portal and add improv_serial before wifi section
+        sed -i '/^captive_portal:/d' generated_yamls/EHLPClock-base.yaml
+        sed -i '/^wifi:/i\improv_serial:\n' generated_yamls/EHLPClock-base.yaml
+        sed -i '/^captive_portal:/d' generated_yamls/EHLPClock-HA-base.yaml
+        sed -i '/^wifi:/i\improv_serial:\n' generated_yamls/EHLPClock-HA-base.yaml
+        
+        # Remove secret dependencies
+        for base_file in generated_yamls/EHLPClock-base.yaml generated_yamls/EHLPClock-HA-base.yaml; do
+          sed -i 's/- ssid: !secret wifi_ssid/# - ssid: !secret wifi_ssid/' "$base_file"
+          sed -i 's/password: !secret wifi_password/# password: !secret wifi_password/' "$base_file"
+          sed -i '/password: !secret ap_password/d' "$base_file"
+          sed -i '/password: !secret ota_password/d' "$base_file"
+          sed -i '/key: !secret encryption_key/d' "$base_file"
+        done
+        
+        # Generate language variants (English + Second Language)
+        for base_name in EHLPClock EHLPClock-HA; do
+          for lang_file in language_filters/*.yaml; do
+            if [ -f "$lang_file" ]; then
+              lang_name=$(basename "$lang_file" .yaml)
+              output_file="generated_yamls/${base_name}-${lang_name}.yaml"
+              
+              echo "📝 Creating bilingual ${output_file} (English + ${lang_name})..."
+              
+              # Use yq to merge the modified base YAML with language file
+              yq eval-all '. as $item ireduce ({}; . *+ $item)' "generated_yamls/${base_name}-base.yaml" "$lang_file" > "$output_file"
+              
+              echo "✅ Generated ${output_file}"
+            fi
+          done
+        done
+        
+        echo "� Generated firmware files:"
+        ls -la firmware/ || echo "No firmware directory created"
+    
+    - name: Validate YAML files
+      run: |
+        echo "🔍 Validating generated YAML files..."
+        for yaml_file in generated_yamls/*.yaml; do
+          echo "Validating $yaml_file..."
+          esphome config "$yaml_file" --dry-run
+        done
+        echo "✅ All YAML files are valid"
+    
+    - name: Compile ESPHome firmwares
+      run: |
+        echo "🔨 Compiling ESPHome firmwares..."
+        
+        # Create firmware output directory
+        mkdir -p firmware
+        
+        for yaml_file in generated_yamls/*.yaml; do
+          filename=$(basename "$yaml_file" .yaml)
+          echo "🔨 Building ${filename}..."
+          
+          # Compile the firmware
+          esphome compile "$yaml_file"
+          
+          # Find the generated binary and copy it
+          device_name=$(yq eval '.esphome.name' "$yaml_file" | tr -d '"')
+          binary_path=".esphome/build/${device_name}/.pioenvs/${device_name}/firmware.bin"
+          
+          if [ -f "$binary_path" ]; then
+            cp "$binary_path" "firmware/${filename}.bin"
+            echo "✅ Copied ${filename}.bin"
+          else
+            echo "❌ Binary not found for ${filename}"
+            # List what's actually there for debugging
+            find .esphome -name "*.bin" -type f || echo "No .bin files found"
+          fi
+        done
+        
+        echo "📦 Generated firmware files:"
+        ls -la firmware/ || echo "No firmware directory created"
+    
+    - name: Create firmware manifest
+      run: |
+        echo "📝 Creating firmware manifest..."
+        
+        # Create JSON manifest for web installer
+        cat > firmware/manifest.json << 'EOF'
+        {
+          "name": "EspHome-Led-PixelClock",
+          "version": "${{ steps.get_version.outputs.version }}",
+          "home_assistant_domain": "esphome",
+          "funding_url": "https://github.com/sponsors/trip5",
+          "builds": [
+        EOF
+        
+        # Add each firmware variant to the manifest
+        FIRST=true
+        for bin_file in firmware/EHLPClock-*.bin; do
+          if [ -f "$bin_file" ]; then
+            filename=$(basename "$bin_file")
+            lang_name=$(echo "$filename" | sed 's/EHLPClock-\([^.]*\)\.bin/\1/')
+            
+            # Add comma separator except for first entry
+            if [ "$FIRST" = "false" ]; then
+              echo "    ," >> firmware/manifest.json
+            fi
+            FIRST=false
+            
+            # Add build entry
+            cat >> firmware/manifest.json << EOF
+            {
+              "chipFamily": "ESP8266",
+              "parts": [
+                {
+                  "path": "${filename}",
+                  "offset": 0
+                }
+              ]
+            }
+        EOF
+          fi
+        done
+        
+        # Close JSON
+        cat >> firmware/manifest.json << 'EOF'
+          ]
+        }
+        EOF
+        
+        # Create firmware info JSON for the web interface
+        cat > firmware/firmware-info.json << 'EOF'
+        {
+          "project": "EspHome-Led-PixelClock",
+          "version": "${{ steps.get_version.outputs.version }}",
+          "build_date": "$(date -u '+%Y-%m-%d %H:%M:%S UTC')",
+          "variants": [
+        EOF
+        
+        # Add variants info
+        FIRST=true
+        for bin_file in firmware/EHLPClock-*.bin; do
+          if [ -f "$bin_file" ]; then
+            filename=$(basename "$bin_file")
+            lang_name=$(echo "$filename" | sed 's/EHLPClock-\([^.]*\)\.bin/\1/')
+            
+            if [ "$FIRST" = "false" ]; then
+              echo "    ," >> firmware/firmware-info.json
+            fi
+            FIRST=false
+            
+            cat >> firmware/firmware-info.json << EOF
+            {
+              "name": "${lang_name}",
+              "filename": "${filename}",
+              "description": "English + ${lang_name} bilingual firmware"
+            }
+        EOF
+          fi
+        done
+        
+        cat >> firmware/firmware-info.json << 'EOF'
+          ]
+        }
+        EOF
+        
+        echo "✅ Created firmware manifests"
+        echo "Generated manifest.json and firmware-info.json"
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.get_version.outputs.tag }}
+        name: "EspHome-Led-PixelClock v${{ steps.get_version.outputs.version }}"
+        body: |
+          # EspHome-Led-PixelClock v${{ steps.get_version.outputs.version }}
+          
+          Compiled firmware binaries for EspHome-Led-PixelClock with multi-language support.
+          
+          ## What's included:
+          - Base firmware (English/Default)
+          - Language variants: Chinese, French, Greek, Korean
+          - All source YAML files
+          
+          ## Installation:
+          1. Download the appropriate .bin file for your language preference
+          2. Use ESPHome Dashboard, ESPTool, or ESP Flash Tool to flash the firmware
+          3. Configure your WiFi and timezone settings
+          
+          See FIRMWARE_INFO.md for detailed information about each variant.
+        files: |
+          firmware/*.bin
+          firmware/manifest.json
+          firmware/firmware-info.json
+          generated_yamls/*.yaml
+        draft: false
+        prerelease: false
+        make_latest: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

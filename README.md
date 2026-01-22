@@ -39,6 +39,8 @@ Here is my clock, using the Matrix Font and a bit of paper sandwiched between th
 
 Flashing is dead-simple. Hold the 'Download' button while powering-on the clock or by pressing the reset button.
 
+You can use ESPHome to make it completely custom or you can use my [Web Installer](https://trip5.github.io/EspHome-Led-PixelClock/firmware.html).
+
 ---
 
 ## Using This firmware
@@ -118,11 +120,16 @@ So if you need a travel clock, this may be the ideal one for you.  It can still 
 
 ### Time Zone Offset
 
-It's up to you how to handle time offset.  It will affect the main time zone as well as the alternate time zone
+It's up to you how to handle time offset.
 You can set an offset with a number that is a positive or negative value with decimal places (ie. 2, -2, 12.5).
 
-I have allowed steps of 0.25 (equal to 15 minutes) but I notice ESPHome does not enforce those steps. It is possible to set an offset like 0.01 (which would be 36 seconds).
-Be careful.
+I have allowed steps of 0.25 (equal to 15 minutes) but ESPHome does not enforce those steps.
+It is possible to set an offset like 0.01 (which would be 36 seconds).  Be careful.
+
+### Time Zone POSIX
+
+Thanks to [andrewjswan](https://github.com/andrewjswan) for the idea to make the time zone editable directly in the WebUI.
+It must be in POSIX format (see notes below).  Don't forget to hit enter to make it stick.
 
 ### Wifi Stop Seek
 
@@ -194,30 +201,22 @@ You could consider hosting the file on another machine in-house, too by using so
   js_url: "http://192.168.1.1/esphome-www/www.js"
 ```
 
-Please note that for some reason, I'm not sure that the UI can be viewed from an Chrome-based mobile browser. Maybe my phone has an issue.
-It seems to work fine when viewing on a computer or an Apple phone. If you have information to share, I'd be glad to know why this is.
-
 ---
 
 ## Home Assistant Version
 
 The file [`EHLPClock-HA.yaml`](EHLPClock-HA.yaml) contains functions useful for using the clock with Home Assistant.
-It does not include the WebUI, Time Zone Offset, Wifi Stop Seek, or Display Off but it does includes all of the functions below.
+It does not include the WebUI, Time Zone Offset, Time Zone POSIX, or Wifi Stop Seek but it does includes all of the functions below.
 
 ### Alternate Time Zone
 
-This option is to allow displaying a Time Zone other than your "home" time zone.  It can be activated permanently or by using the "Auto Replacement = Alt. Time" mode.
-This allows you to see your home time zone and an alternate time zone in another language.  Now your clock is a bilingual time-traveler!
+This option is to allow displaying a Time Zone other than your "home" time zone.  It can be activated permanently.
 
-Please note that the time zones MUST be in POSIX format instead of the usual Olsen type (`Asia/Seoul`).
+### Override Time Zones
 
-POSIX formats look like: `KST-9` or `PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00` or `AST4ADT,M3.2.0,M11.1.0`.
-
-They include daylight savings and time-switches in the formatting. So, there is no reliance on the ESPHome Olsen database to be current.
-You can view a lot of the time zones in the world in POSIX format [`here`](https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv) or
-[`here`](https://support.cyberdata.net/portal/en/kb/articles/010d63c0cfce3676151e1f2d5442e311).
-If you need to make a custom POSIX format you can look [`here`](https://developer.ibm.com/articles/au-aix-posix/) or even better, use this
-[`POSIX Generator`](https://www.topyuan.top/posix) courtesy of TopYuan.
+Making Home Assistant Helpers (Input Text) with these names can override the in-firmware time zones.
+Add `Clock Time Zone` and `Clock Time Zone Alt` as text helpers through [Helpers](https://my.home-assistant.io/redirect/helpers/).
+By default, these entities are `input_text.clock_time_zone` and `input_text.clock_time_zone_alt`.
 
 ### Service Call
 
@@ -243,7 +242,45 @@ I personally use only one sensor in my Home Assistant and 2 clocks in the house 
 
 ---
 
-## Crashes?
+## Notes
+
+### POSIX Time Strings
+
+Please note that the time zones MUST be in POSIX format instead of the usual Olsen type (`Asia/Seoul`).
+
+POSIX formats look like: `KST-9` or `PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00` or `AST4ADT,M3.2.0,M11.1.0`.
+
+They include daylight savings and time-switches in the formatting. So, there is no reliance on the ESPHome Olsen database to be current.
+You can view all of the time zones in the world in POSIX format [`here`](https://github.com/trip5/timezones.json/blob/master/timezones.md).
+If you need to make a custom POSIX format you can look [`here`](https://developer.ibm.com/articles/au-aix-posix/) or even better, use this
+[`POSIX Generator`](https://www.topyuan.top/posix) courtesy of TopYuan.
+
+### OTA Update Can Be Buggy
+
+Because these devices save preferences to flash, updates that introduce new features (which I do often) may fragment the storage space, causing strange behavior.
+It's always best to fully erase and re-flash when upgrading the version of the firmware.
+
+### Plus Expansion Box
+
+At some point, I added an external "Plus" Box with 2 buttons, one of which has an internal LED.
+I haven't actually found it useful but it was a neat experiment. It's probably only useful in conjunction with Home Assistant.
+
+![image](./images/PlusExpansion.jpg)
+
+
+Only 3 GPIOs are available that aren't already being used by onboard functions: `GPIO1` (TX), `GPIO3` (RX) and `GPIO12`.
+There's not too much harm in adding `GPIO4` (the Download button) to the breakout as well.
+Remember that `GPIO1` must not be pulled low at boot so don't try to use it for a sensor or LED.
+That's actually the real reason the box has a switch - it's actually a way to cutoff GND.
+
+In the box, `GPIO4` is wired to the small button, `GPIO3` is wired to the arcade button switch, and `GPIO12` is wired to the LED of the switch.
+I used a broken USB cable (which has 5 wires internally). The XH2.54 connectors (super-glued to the board itself) is a perfect fit under the acrylic shell.
+
+The file [`EHLPClock-Plus.yaml`](EHLPClock-Plus.yaml) contains my personal additions to make this box function.
+
+In practice, it might be better to wire in a temperature sensor...
+
+### Crashes?
 
 The memory of the ESP8266 on this clock is extremely limited. With these default yamls, I've found the devices often crash just when doing an OTA update.
 So I usually flash via USB cable.  To save memory, it is probably a good idea to limit the number of characters you include in the glyphs section to only necessary characters.
@@ -271,6 +308,7 @@ I've found anything below 8kB available to the heap can cause constant crashes.
 
 | Date       | Release Notes    |
 | ---------- | ---------------- |
+| 2026.01.22 | Added POSIX to non-HA version and overrides to HA version, removed device's friendly name from entities, mdi icons added, various fixes |
 | 2025.05.26 | Minor fixes, language filters updated |
 | 2024.12.09 | Recoded to remove many global variables, relying on numbers and switches where possible, hard-coded variables removed |
 | 2024.11.11 | OTA display status works, Display off added to regular version (hard-coded variables), power measurements complete |

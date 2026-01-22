@@ -10,7 +10,7 @@ text_sensor:
 
   - platform: template
     id: time_text
-    name: "${friendly_name} Replacement Time Text"
+    name: "Replacement Time Text"
     entity_category: diagnostic
     update_interval: never
     internal: true
@@ -40,7 +40,7 @@ text_sensor:
         - "PM -> 下午"
   - platform: template
     id: date_text
-    name: "${friendly_name} Replacement Date Text"
+    name: "Replacement Date Text"
     entity_category: diagnostic
     update_interval: never
     internal: true
@@ -121,7 +121,7 @@ text_sensor:
         - "Dec -> 十二月"
   - platform: template
     id: dateA_text
-    name: "${friendly_name} Replacement Date A Text"
+    name: "Replacement Date A Text"
     entity_category: diagnostic
     update_interval: never
     internal: true

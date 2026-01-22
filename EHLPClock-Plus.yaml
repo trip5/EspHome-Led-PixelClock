@@ -1,0 +1,32 @@
+# Plus Expansion Box Additions
+
+# Add to substitutions section (***Plus Expansion Box)
+  plus_led: GPIO12
+  plus_button: GPIO3
+
+# Add to Output section (***Plus Expansion Box)
+  - platform: esp8266_pwm
+    pin: 
+      number: ${plus_led}
+      mode:
+        output: true
+    id: plus_led
+
+# Add to Light section (***Plus Expansion Box)
+  - platform: monochromatic
+    name: "Plus LED"
+    id: plus_led_light
+    output: plus_led
+    entity_category: config
+
+# Add to Binary Sensor section (***Plus Expansion Box)
+  - platform: gpio
+    name: "Plus Button"
+    id: plus_button
+    pin: 
+      number: ${plus_button}
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+        #pulldown: true

@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EspHome-Led-PixelClock - Web Installer</title>
+    <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            margin: 20px 0;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+            margin-bottom: 20px;
+        }
+
+        .made-for-esphome {
+            margin: 20px 0;
+        }
+
+        .made-for-esphome img {
+            height: 96px;
+            width: auto;
+        }
+
+        .firmware-section {
+            margin: 30px 0;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .firmware-selector {
+            margin: 20px 0;
+        }
+
+        .firmware-selector label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .firmware-selector select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            background: white;
+            transition: border-color 0.2s;
+        }
+
+        .firmware-selector select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .install-section {
+            margin: 25px 0;
+            text-align: center;
+        }
+
+        esp-web-install-button {
+            --esp-tools-button-color: #667eea;
+            --esp-tools-button-text-color: white;
+            margin: 10px;
+        }
+
+        .wifi-section {
+            margin: 30px 0;
+            padding: 25px;
+            background: #e8f4fd;
+            border-radius: 8px;
+            border: 1px solid #b3d7f7;
+        }
+
+        .wifi-form {
+            display: grid;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .wifi-form input {
+            padding: 12px 16px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+
+        .wifi-form input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .wifi-form button {
+            padding: 12px 24px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .wifi-form button:hover {
+            background: #218838;
+        }
+
+        .wifi-form button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .status-message {
+            margin: 15px 0;
+            padding: 12px 16px;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .info-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .info-box h3 {
+            margin-top: 0;
+            color: #856404;
+        }
+
+        .info-box p {
+            margin-bottom: 0;
+            color: #856404;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 30px 0;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .footer img {
+            height: 48px;
+            width: auto;
+            margin-bottom: 10px;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .footer img:hover {
+            opacity: 1;
+        }
+
+        .footer a {
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>EspHome-Led-PixelClock</h1>
+            <p>Flash firmware directly from your browser</p>
+            <div class="made-for-esphome">
+                <a href="https://esphome.io/guides/made_for_esphome/" target="_blank">
+                    <img src="https://esphome.io/_images/made-for-esphome-white-on-black.png" alt="Made for ESPHome">
+                </a>
+            </div>
+        </div>
+
+        <div class="firmware-section">
+            <h3>🌍 Select Language</h3>
+            <p>Choose your preferred language. All firmware includes English plus your selected language.</p>
+            
+            <div class="firmware-selector">
+                <label for="language-select">Language Variant:</label>
+                <select id="language-select">
+                    <option value="">Loading available firmware...</option>
+                </select>
+            </div>
+
+            <div class="install-section">
+                <esp-web-install-button id="install-button" style="display: none;">
+                    <button slot="activate">Install Firmware</button>
+                </esp-web-install-button>
+                <div id="firmware-info" class="info-box" style="display: none;">
+                    <h3>Selected Firmware</h3>
+                    <p id="firmware-description"></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="wifi-section">
+            <h3>📶 WiFi Configuration</h3>
+            <p>After flashing, you can configure WiFi credentials directly through the browser using Improv Serial.</p>
+            
+            <div class="wifi-form">
+                <input type="text" id="wifi-ssid" placeholder="WiFi Network Name (SSID)" maxlength="32">
+                <input type="password" id="wifi-password" placeholder="WiFi Password" maxlength="64">
+                <button id="configure-wifi" disabled>Configure WiFi</button>
+            </div>
+            
+            <div id="wifi-status" class="status-message"></div>
+            
+            <div class="info-box">
+                <h3>💡 Setup Steps</h3>
+                <p>
+                    1. Select your language above<br>
+                    2. Click "Install Firmware" and connect your device<br>
+                    3. Enter your WiFi details and click "Configure WiFi"<br>
+                    4. Your clock will connect automatically!
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const GITHUB_REPO = 'trip5/EspHome-Led-PixelClock';
+        
+        // Global variables
+        let firmwareData = null;
+        let improvSerial = null;
+
+        // DOM elements
+        const languageSelect = document.getElementById('language-select');
+        const installButton = document.getElementById('install-button');
+        const firmwareInfo = document.getElementById('firmware-info');
+        const firmwareDescription = document.getElementById('firmware-description');
+        const wifiSsid = document.getElementById('wifi-ssid');
+        const wifiPassword = document.getElementById('wifi-password');
+        const configureWifiButton = document.getElementById('configure-wifi');
+        const wifiStatus = document.getElementById('wifi-status');
+
+        // Initialize the app
+        async function init() {
+            await loadLatestFirmware();
+            setupEventListeners();
+        }
+
+        // Load latest firmware data from GitHub releases
+        async function loadLatestFirmware() {
+            try {
+                showStatus('Loading firmware information...', 'info');
+                
+                // Get latest release
+                const releaseResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
+                const release = await releaseResponse.json();
+                
+                // Find firmware-info.json asset
+                const firmwareInfoAsset = release.assets.find(asset => asset.name === 'firmware-info.json');
+                if (!firmwareInfoAsset) {
+                    throw new Error('Firmware information not found');
+                }
+                
+                // Load firmware info
+                const firmwareInfoResponse = await fetch(firmwareInfoAsset.browser_download_url);
+                firmwareData = await firmwareInfoResponse.json();
+                
+                populateLanguageSelector();
+                hideStatus();
+                
+            } catch (error) {
+                console.error('Error loading firmware:', error);
+                showStatus('Failed to load firmware information. Please try again later.', 'error');
+                languageSelect.innerHTML = '<option value="">Failed to load firmware</option>';
+            }
+        }
+
+        // Populate the language selector
+        function populateLanguageSelector() {
+            languageSelect.innerHTML = '<option value="">Choose your language...</option>';
+            
+            firmwareData.variants.forEach(variant => {
+                const option = document.createElement('option');
+                option.value = variant.name;
+                option.textContent = `${variant.name} (English + ${variant.name})`;
+                option.dataset.filename = variant.filename;
+                option.dataset.description = variant.description;
+                languageSelect.appendChild(option);
+            });
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            languageSelect.addEventListener('change', onLanguageChange);
+            configureWifiButton.addEventListener('click', configureWifi);
+            
+            // Enable WiFi configuration when both fields have values
+            [wifiSsid, wifiPassword].forEach(input => {
+                input.addEventListener('input', () => {
+                    configureWifiButton.disabled = !wifiSsid.value || !wifiPassword.value;
+                });
+            });
+        }
+
+        // Handle language selection
+        async function onLanguageChange() {
+            const selectedOption = languageSelect.selectedOptions[0];
+            
+            if (!selectedOption.value) {
+                installButton.style.display = 'none';
+                firmwareInfo.style.display = 'none';
+                return;
+            }
+            
+            const filename = selectedOption.dataset.filename;
+            const description = selectedOption.dataset.description;
+            
+            // Get latest release for download URL
+            const releaseResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
+            const release = await releaseResponse.json();
+            
+            // Find the binary file
+            const binaryAsset = release.assets.find(asset => asset.name === filename);
+            if (!binaryAsset) {
+                showStatus('Firmware file not found', 'error');
+                return;
+            }
+            
+            // Configure install button
+            const manifestUrl = `data:application/json,${encodeURIComponent(JSON.stringify({
+                name: "EspHome-Led-PixelClock",
+                version: firmwareData.version,
+                builds: [{
+                    chipFamily: "ESP8266",
+                    parts: [{
+                        path: binaryAsset.browser_download_url,
+                        offset: 0
+                    }]
+                }]
+            }))}`;
+            
+            installButton.setAttribute('manifest', manifestUrl);
+            installButton.style.display = 'block';
+            
+            // Show firmware info
+            firmwareDescription.textContent = description;
+            firmwareInfo.style.display = 'block';
+        }
+
+        // Configure WiFi using Improv Serial
+        async function configureWifi() {
+            if (!navigator.serial) {
+                showStatus('Serial API not supported in this browser. Please use Chrome, Edge, or Opera.', 'error');
+                return;
+            }
+
+            try {
+                configureWifiButton.disabled = true;
+                configureWifiButton.textContent = 'Connecting...';
+                showStatus('Connecting to device...', 'info');
+
+                // Request serial port
+                const port = await navigator.serial.requestPort();
+                await port.open({ baudRate: 115200 });
+
+                showStatus('Sending WiFi credentials...', 'info');
+
+                // Simple Improv Serial implementation
+                const writer = port.writable.getWriter();
+                
+                // Send WiFi credentials in Improv format
+                const ssid = wifiSsid.value;
+                const password = wifiPassword.value;
+                
+                // Improv WiFi command
+                const command = new Uint8Array([
+                    0x49, 0x4D, 0x50, 0x52, 0x4F, 0x56, // "IMPROV"
+                    0x01, // Version
+                    0x01, // Type: WiFi settings
+                    ssid.length, ...new TextEncoder().encode(ssid),
+                    password.length, ...new TextEncoder().encode(password)
+                ]);
+                
+                await writer.write(command);
+                await writer.close();
+                
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                await port.close();
+                
+                showStatus('WiFi credentials sent successfully! Device should connect automatically.', 'success');
+                
+            } catch (error) {
+                console.error('WiFi configuration error:', error);
+                showStatus('Failed to configure WiFi. Make sure your device is connected and try again.', 'error');
+            } finally {
+                configureWifiButton.disabled = false;
+                configureWifiButton.textContent = 'Configure WiFi';
+            }
+        }
+
+        // Show status message
+        function showStatus(message, type) {
+            wifiStatus.textContent = message;
+            wifiStatus.className = `status-message status-${type}`;
+            wifiStatus.style.display = 'block';
+        }
+
+        // Hide status message
+        function hideStatus() {
+            wifiStatus.style.display = 'none';
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+    
+    <div class="footer">
+        <a href="https://github.com/trip5" target="_blank">
+            <img src="https://raw.githubusercontent.com/trip5/trip5/main/images/Trip5_outline.svg" alt="Trip5">
+        </a>
+        <br>
+        <span><a href="https://github.com/trip5/EspHome-Led-PixelClock/" target="_blank">https://github.com/trip5/EspHome-Led-PixelClock/</a></span>
+    </div>
+</body>
+</html>
