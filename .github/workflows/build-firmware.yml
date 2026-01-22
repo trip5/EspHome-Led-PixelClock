@@ -97,15 +97,29 @@ jobs:
               
               echo "📝 Creating bilingual ${output_file} (English + ${lang_name})..."
               
-              # Use yq to merge files, combining fonts and replacing language-specific text sensors
+              # Use yq to merge files with ID-aware replacement strategy
+              # For each section, if language file has items with same ID, replace completely
               yq eval-all '
                 select(fileIndex == 0) as $base |
                 select(fileIndex == 1) as $lang |
+                
+                # Get all IDs that exist in language file for replacement
+                ($lang.font // [] | map(.id)) as $lang_font_ids |
+                ($lang.text_sensor // [] | map(.id)) as $lang_text_ids |
+                
+                # Start with base, then apply smart merge
                 $base * $lang |
-                .font = ($base.font + $lang.font) |
+                
+                # Font merge: Keep base fonts that are not being replaced + all language fonts
+                .font = (
+                  ($base.font // [] | map(select(.id as $id | $lang_font_ids | index($id) | not))) +
+                  ($lang.font // [])
+                ) |
+                
+                # Text sensor merge: Keep base text_sensors that are not being replaced + all language text_sensors
                 .text_sensor = (
-                  ($base.text_sensor | map(select(.id != "time_text" and .id != "date_text" and .id != "dateA_text"))) +
-                  $lang.text_sensor
+                  ($base.text_sensor // [] | map(select(.id as $id | $lang_text_ids | index($id) | not))) +
+                  ($lang.text_sensor // [])
                 )
               ' "generated_yamls/${base_name}-base.yaml" "$lang_file" > "$output_file"
               
