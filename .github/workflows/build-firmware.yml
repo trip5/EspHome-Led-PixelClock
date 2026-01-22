@@ -236,11 +236,7 @@ jobs:
             lang_name=$(echo "$filename" | sed 's/EHLPClock-\([^.]*\)\.bin/\1/')
             manifest_file="docs/manifests/${lang_name}-manifest.json"
             
-            # Copy .bin file to docs/manifests for GitHub Pages deployment
-            cp "$bin_file" "docs/manifests/${filename}"
-            echo "Copied ${filename} to docs/manifests/"
-            
-            # Create manifest with relative path
+            # Create manifest with relative path (artifacts will be deployed to site/manifests)
             echo '{' > "$manifest_file"
             echo '  "name": "EspHome-Led-PixelClock",' >> "$manifest_file"
             echo '  "version": "${{ steps.get_version.outputs.version }}",' >> "$manifest_file"
@@ -295,13 +291,13 @@ jobs:
         
         echo "✅ Created firmware manifests and info"
     
-    - name: Commit manifest and binary files to docs
+    - name: Commit manifest files to docs
       run: |
-        # Commit manifest and binary files to docs folder
+        # Commit manifest files only (not binaries)
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
-        git add docs/manifests/*.json docs/manifests/*.bin docs/firmware-info.json
-        git commit -m "Update firmware manifests and binaries for ${{ steps.get_version.outputs.version }}" || echo "No changes to commit"
+        git add docs/manifests/*.json docs/firmware-info.json
+        git commit -m "Update firmware manifests for ${{ steps.get_version.outputs.version }}" || echo "No changes to commit"
         git push || echo "Nothing to push"
     
     - name: Upload firmware artifacts
