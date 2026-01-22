@@ -186,8 +186,14 @@ jobs:
           # Find the generated binary and copy it
           device_name=$(yq eval '.esphome.name' "$yaml_file" | tr -d '"')
           
-          # ESPHome stores binaries in multiple possible locations, try them in order
+          # ESPHome stores binaries relative to the YAML file location
+          # Since YAML files are in generated_yamls/, builds go to generated_yamls/.esphome/
+
+          # Probably the first one...
+
+
           possible_paths=(
+            "generated_yamls/.esphome/build/${device_name}/.pioenvs/${device_name}/firmware.bin"
             ".pioenvs/${device_name}/firmware.bin"
             "${device_name}/.pioenvs/${device_name}/firmware.bin"
             ".esphome/build/${device_name}/.pioenvs/${device_name}/firmware.bin"
