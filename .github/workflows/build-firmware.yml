@@ -239,38 +239,34 @@ jobs:
             manifest_file="docs/manifests/${lang_name}-manifest.json"
             
             # Create manifest with absolute URL to release asset
-            cat > "$manifest_file" <<MANIFEST_EOF
-{
-  "name": "EspHome-Led-PixelClock",
-  "version": "${{ steps.get_version.outputs.version }}",
-  "home_assistant_domain": "esphome",
-  "funding_url": "https://github.com/sponsors/trip5",
-  "builds": [
-    {
-      "chipFamily": "ESP8266",
-      "parts": [
-        {
-          "path": "https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.tag }}/${filename}",
-          "offset": 0
-        }
-      ]
-    }
-  ]
-}
-MANIFEST_EOF
+            echo '{' > "$manifest_file"
+            echo '  "name": "EspHome-Led-PixelClock",' >> "$manifest_file"
+            echo '  "version": "${{ steps.get_version.outputs.version }}",' >> "$manifest_file"
+            echo '  "home_assistant_domain": "esphome",' >> "$manifest_file"
+            echo '  "funding_url": "https://github.com/sponsors/trip5",' >> "$manifest_file"
+            echo '  "builds": [' >> "$manifest_file"
+            echo '    {' >> "$manifest_file"
+            echo '      "chipFamily": "ESP8266",' >> "$manifest_file"
+            echo '      "parts": [' >> "$manifest_file"
+            echo '        {' >> "$manifest_file"
+            echo "          \"path\": \"https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.tag }}/${filename}\"," >> "$manifest_file"
+            echo '          "offset": 0' >> "$manifest_file"
+            echo '        }' >> "$manifest_file"
+            echo '      ]' >> "$manifest_file"
+            echo '    }' >> "$manifest_file"
+            echo '  ]' >> "$manifest_file"
+            echo '}' >> "$manifest_file"
             echo "Created manifest: $manifest_file"
           fi
         done
         
         # Create firmware info JSON for the web interface
         BUILD_DATE=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
-        cat > docs/firmware-info.json <<INFO_EOF
-{
-  "project": "EspHome-Led-PixelClock",
-  "version": "${{ steps.get_version.outputs.version }}",
-  "build_date": "${BUILD_DATE}",
-  "variants": [
-INFO_EOF
+        echo '{' > docs/firmware-info.json
+        echo '  "project": "EspHome-Led-PixelClock",' >> docs/firmware-info.json
+        echo '  "version": "${{ steps.get_version.outputs.version }}",' >> docs/firmware-info.json
+        echo "  \"build_date\": \"${BUILD_DATE}\"," >> docs/firmware-info.json
+        echo '  "variants": [' >> docs/firmware-info.json
         
         # Add variants info
         FIRST=true
@@ -284,20 +280,16 @@ INFO_EOF
             fi
             FIRST=false
             
-            cat >> docs/firmware-info.json <<VARIANT_EOF
-  {
-    "name": "${lang_name}",
-    "manifest": "manifests/${lang_name}-manifest.json",
-    "description": "English + ${lang_name} bilingual firmware"
-  }
-VARIANT_EOF
+            echo '  {' >> docs/firmware-info.json
+            echo "    \"name\": \"${lang_name}\"," >> docs/firmware-info.json
+            echo "    \"manifest\": \"manifests/${lang_name}-manifest.json\"," >> docs/firmware-info.json
+            echo "    \"description\": \"English + ${lang_name} bilingual firmware\"" >> docs/firmware-info.json
+            echo '  }' >> docs/firmware-info.json
           fi
         done
         
-        cat >> docs/firmware-info.json <<'CLOSE_EOF'
-  ]
-}
-CLOSE_EOF
+        echo '  ]' >> docs/firmware-info.json
+        echo '}' >> docs/firmware-info.json
         
         echo "✅ Created firmware manifests and info"
     
