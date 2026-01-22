@@ -30,6 +30,18 @@ jobs:
       run: |
         pip install esphome
     
+    - name: Download font files
+      run: |
+        echo "📥 Downloading font files from MatrixClockFonts repository..."
+        mkdir -p fonts
+        
+        # Download fonts from your MatrixClockFonts repository
+        curl -L -o fonts/MatrixChunky8X.ttf "https://github.com/trip5/MatrixClockFonts/raw/main/MatrixChunky8X.ttf"
+        curl -L -o fonts/MatrixLight8X.ttf "https://github.com/trip5/MatrixClockFonts/raw/main/MatrixLight8X.ttf"
+        
+        echo "✅ Downloaded font files:"
+        ls -la fonts/
+    
     - name: Get version tag
       id: get_version
       run: |
