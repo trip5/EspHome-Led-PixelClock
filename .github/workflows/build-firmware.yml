@@ -33,19 +33,13 @@ jobs:
     - name: Download font files
       run: |
         echo "📥 Downloading font files from MatrixClockFonts repository..."
-        mkdir -p fonts
         mkdir -p generated_yamls/fonts
         
-        # Download BDF fonts from your MatrixClockFonts repository
-        curl -L -o fonts/MatrixChunky8X.bdf "https://github.com/trip5/MatrixClockFonts/raw/main/MatrixChunky8X.bdf"
-        curl -L -o fonts/MatrixLight8X.bdf "https://github.com/trip5/MatrixClockFonts/raw/main/MatrixLight8X.bdf"
+        # Download BDF fonts directly to where the YAML files expect them
+        curl -L -o generated_yamls/fonts/MatrixChunky8X.bdf "https://github.com/trip5/MatrixClockFonts/raw/main/MatrixChunky8X.bdf"
+        curl -L -o generated_yamls/fonts/MatrixLight8X.bdf "https://github.com/trip5/MatrixClockFonts/raw/main/MatrixLight8X.bdf"
         
-        # Copy fonts to where ESPHome will look for them in generated YAMLs
-        cp fonts/*.bdf generated_yamls/fonts/
-        
-        echo "✅ Downloaded font files:"
-        ls -la fonts/
-        echo "✅ Copied to generated_yamls/fonts/:"
+        echo "✅ Downloaded font files to generated_yamls/fonts/:"
         ls -la generated_yamls/fonts/
     
     - name: Get version tag
