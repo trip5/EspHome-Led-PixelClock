@@ -112,13 +112,13 @@ jobs:
                 
                 # Font merge: Keep base fonts that are not being replaced + all language fonts
                 .font = (
-                  ($base.font // [] | map(select(.id as $id | ($lang_font_ids | index($id)) == null))) +
+                  ($base.font // [] | map(select(.id as $id | $lang_font_ids | contains([$id]) | not))) +
                   ($lang.font // [])
                 ) |
                 
                 # Text sensor merge: Keep base text_sensors that are not being replaced + all language text_sensors
                 .text_sensor = (
-                  ($base.text_sensor // [] | map(select(.id as $id | ($lang_text_ids | index($id)) == null))) +
+                  ($base.text_sensor // [] | map(select(.id as $id | $lang_text_ids | contains([$id]) | not))) +
                   ($lang.text_sensor // [])
                 )
               ' "generated_yamls/${base_name}-base.yaml" "$lang_file" > "$output_file"
