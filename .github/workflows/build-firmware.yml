@@ -240,24 +240,24 @@ jobs:
             
             # Create manifest with absolute URL to release asset
             cat > "$manifest_file" <<MANIFEST_EOF
-            {
-              "name": "EspHome-Led-PixelClock",
-              "version": "${{ steps.get_version.outputs.version }}",
-              "home_assistant_domain": "esphome",
-              "funding_url": "https://github.com/sponsors/trip5",
-              "builds": [
-                {
-                  "chipFamily": "ESP8266",
-                  "parts": [
-                    {
-                      "path": "https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.tag }}/${filename}",
-                      "offset": 0
-                    }
-                  ]
-                }
-              ]
-            }
-            MANIFEST_EOF
+{
+  "name": "EspHome-Led-PixelClock",
+  "version": "${{ steps.get_version.outputs.version }}",
+  "home_assistant_domain": "esphome",
+  "funding_url": "https://github.com/sponsors/trip5",
+  "builds": [
+    {
+      "chipFamily": "ESP8266",
+      "parts": [
+        {
+          "path": "https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.tag }}/${filename}",
+          "offset": 0
+        }
+      ]
+    }
+  ]
+}
+MANIFEST_EOF
             echo "Created manifest: $manifest_file"
           fi
         done
@@ -265,12 +265,12 @@ jobs:
         # Create firmware info JSON for the web interface
         BUILD_DATE=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
         cat > docs/firmware-info.json <<INFO_EOF
-        {
-          "project": "EspHome-Led-PixelClock",
-          "version": "${{ steps.get_version.outputs.version }}",
-          "build_date": "${BUILD_DATE}",
-          "variants": [
-        INFO_EOF
+{
+  "project": "EspHome-Led-PixelClock",
+  "version": "${{ steps.get_version.outputs.version }}",
+  "build_date": "${BUILD_DATE}",
+  "variants": [
+INFO_EOF
         
         # Add variants info
         FIRST=true
@@ -285,19 +285,19 @@ jobs:
             FIRST=false
             
             cat >> docs/firmware-info.json <<VARIANT_EOF
-            {
-              "name": "${lang_name}",
-              "manifest": "manifests/${lang_name}-manifest.json",
-              "description": "English + ${lang_name} bilingual firmware"
-            }
-            VARIANT_EOF
+  {
+    "name": "${lang_name}",
+    "manifest": "manifests/${lang_name}-manifest.json",
+    "description": "English + ${lang_name} bilingual firmware"
+  }
+VARIANT_EOF
           fi
         done
         
         cat >> docs/firmware-info.json <<'CLOSE_EOF'
-          ]
-        }
-        CLOSE_EOF
+  ]
+}
+CLOSE_EOF
         
         echo "✅ Created firmware manifests and info"
     
