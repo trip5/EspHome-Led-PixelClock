@@ -38,6 +38,24 @@ jobs:
           
       - name: Build documentation
         run: mkdocs build
+      
+      - name: Download firmware artifacts (if available)
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: firmware-binaries
+          path: firmware-temp
+      
+      - name: Copy firmware to site
+        continue-on-error: true
+        run: |
+          if [ -d "firmware-temp" ]; then
+            mkdir -p site/manifests
+            cp firmware-temp/*.bin site/manifests/ 2>/dev/null || echo "No firmware binaries to copy"
+            echo "✅ Copied firmware binaries to site/manifests/"
+          else
+            echo "ℹ️ No firmware artifacts found (this is normal if no recent firmware build)"
+          fi
         
       - name: Setup Pages
         uses: actions/configure-pages@v4
