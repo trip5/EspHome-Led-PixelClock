@@ -3,9 +3,6 @@ name: Build ESPHome Firmware
 on:
   workflow_dispatch:
   workflow_call:  # Allow this workflow to be called by other workflows
-  push:
-    tags:
-      - '*'
 
 permissions:
   contents: write
