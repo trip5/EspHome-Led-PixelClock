@@ -311,10 +311,10 @@
             try {
                 showStatus('Loading firmware information...', 'info');
                 
-                // Fetch firmware-info.json from docs folder (committed to repo, CORS-friendly)
+                // Fetch firmware-info.json from GitHub Pages (where artifacts are deployed)
                 // Use timestamp to prevent caching
                 const timestamp = new Date().getTime();
-                const firmwareInfoUrl = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/docs/firmware-info.json?t=${timestamp}`;
+                const firmwareInfoUrl = `https://${GITHUB_OWNER}.github.io/${GITHUB_REPO.split('/')[1]}/firmware-info.json?t=${timestamp}`;
                 console.log('Fetching firmware info from:', firmwareInfoUrl);
                 
                 const firmwareInfoResponse = await fetch(firmwareInfoUrl);
@@ -378,8 +378,8 @@
             const manifestPath = selectedOption.dataset.manifest;
             const description = selectedOption.dataset.description;
             
-            // Use the manifest URL from GitHub Pages (CORS-enabled)
-            const manifestUrl = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/docs/${manifestPath}`;
+            // Use the manifest URL from GitHub Pages (where artifacts are deployed)
+            const manifestUrl = `https://${GITHUB_OWNER}.github.io/${GITHUB_REPO.split('/')[1]}/${manifestPath}`;
             
             installButton.setAttribute('manifest', manifestUrl);
             installButton.style.display = 'block';
