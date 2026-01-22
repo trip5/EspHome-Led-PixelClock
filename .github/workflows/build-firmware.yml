@@ -35,9 +35,9 @@ jobs:
         echo "📥 Downloading font files from Matrix-Fonts repository..."
         mkdir -p generated_yamls/fonts
         
-        # Download TTF fonts directly to where the YAML files expect them
-        curl -L -o generated_yamls/fonts/MatrixChunky8X.ttf "https://github.com/trip5/Matrix-Fonts/raw/refs/heads/main/8-series/MatrixChunky8X.ttf"
-        curl -L -o generated_yamls/fonts/MatrixLight8X.ttf "https://github.com/trip5/Matrix-Fonts/raw/refs/heads/main/8-series/MatrixLight8X.ttf"
+        # Download BDF fonts directly to where the YAML files expect them
+        curl -L -o generated_yamls/fonts/MatrixChunky8X.bdf "https://github.com/trip5/Matrix-Fonts/raw/refs/heads/main/8-series/MatrixChunky8X.bdf"
+        curl -L -o generated_yamls/fonts/MatrixLight8X.bdf "https://github.com/trip5/Matrix-Fonts/raw/refs/heads/main/8-series/MatrixLight8X.bdf"
         
         echo "✅ Downloaded font files to generated_yamls/fonts/:"
         ls -la generated_yamls/fonts/
