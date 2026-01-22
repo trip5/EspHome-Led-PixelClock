@@ -176,7 +176,8 @@ jobs:
         # Create firmware output directory
         mkdir -p firmware
         
-        for yaml_file in generated_yamls/*.yaml; do
+        # TEMPORARY: Only build one file for testing
+        for yaml_file in generated_yamls/EHLPClock-Chinese.yaml; do
           filename=$(basename "$yaml_file" .yaml)
           echo "🔨 Building ${filename}..."
           
@@ -185,6 +186,7 @@ jobs:
           
           # Find the generated binary and copy it
           device_name=$(yq eval '.esphome.name' "$yaml_file" | tr -d '"')
+          echo "Device name from YAML: ${device_name}"
           
           # ESPHome stores binaries relative to the YAML file location
           # Since YAML files are in generated_yamls/, builds go to generated_yamls/.esphome/
@@ -198,6 +200,11 @@ jobs:
             "${device_name}/.pioenvs/${device_name}/firmware.bin"
             ".esphome/build/${device_name}/.pioenvs/${device_name}/firmware.bin"
           )
+          
+          echo "Looking for binary in these paths:"
+          for path in "${possible_paths[@]}"; do
+            echo "  - $path"
+          done
           
           binary_found=false
           for binary_path in "${possible_paths[@]}"; do
