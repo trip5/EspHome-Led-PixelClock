@@ -111,9 +111,15 @@ jobs:
     - name: Validate YAML files
       run: |
         echo "🔍 Validating generated YAML files..."
+        
+        # First, let's check what font files we actually downloaded
+        echo "📂 Checking downloaded font files:"
+        ls -la generated_yamls/fonts/
+        file generated_yamls/fonts/* || echo "No font files found"
+        
         for yaml_file in generated_yamls/*.yaml; do
           echo "Validating $yaml_file..."
-          esphome config "$yaml_file" --dry-run
+          esphome config "$yaml_file"
         done
         echo "✅ All YAML files are valid"
     
