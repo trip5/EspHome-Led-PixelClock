@@ -50,6 +50,14 @@ jobs:
       - name: Build documentation
         run: mkdocs build
       
+      - name: List available artifacts (debug)
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          echo "Checking for artifacts..."
+          gh run list --limit 1
+        env:
+          GH_TOKEN: ${{ github.token }}
+      
       - name: Download firmware artifacts (if tag build)
         if: startsWith(github.ref, 'refs/tags/')
         uses: actions/download-artifact@v4
@@ -60,9 +68,16 @@ jobs:
       - name: Copy firmware to site (if tag build)
         if: startsWith(github.ref, 'refs/tags/')
         run: |
+          echo "Contents of firmware-temp:"
+          ls -la firmware-temp/ || echo "firmware-temp directory not found"
           mkdir -p site/manifests
-          cp firmware-temp/*.bin site/manifests/
-          echo "✅ Copied firmware binaries to site/manifests/"
+          if [ -f firmware-temp/*.bin ]; then
+            cp firmware-temp/*.bin site/manifests/
+            echo "✅ Copied firmware binaries to site/manifests/"
+          else
+            echo "❌ No .bin files found in firmware-temp/"
+          fi
+          echo "Contents of site/manifests:"
           ls -la site/manifests/
         
       - name: Setup Pages
