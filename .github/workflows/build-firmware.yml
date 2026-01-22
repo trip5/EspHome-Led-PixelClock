@@ -219,6 +219,7 @@ jobs:
             # List what's actually there for debugging
             find . -name "firmware.bin" -type f 2>/dev/null || echo "No firmware.bin files found anywhere"
           fi
+          break  # TESTING: Remove this line to build all variants
         done
         
         echo "📦 Generated firmware files:"
