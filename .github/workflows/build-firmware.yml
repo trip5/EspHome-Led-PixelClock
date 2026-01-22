@@ -185,8 +185,17 @@ jobs:
           esphome compile "$yaml_file"
           
           # Find the generated binary and copy it
-          device_name=$(yq eval '.esphome.name' "$yaml_file" | tr -d '"')
-          echo "Device name from YAML: ${device_name}"
+          # The device name uses substitutions, so we need to get the actual resolved name
+          # ESPHome creates the build directory with the resolved name, so find it
+          device_name=$(find generated_yamls/.esphome/build/ -maxdepth 1 -type d ! -name "build" -printf "%f\n" 2>/dev/null | head -1)
+          
+          if [ -z "$device_name" ]; then
+            echo "⚠️ Could not find build directory, trying to extract from YAML substitutions..."
+            # Fallback: try to get from substitutions
+            device_name=$(yq eval '.substitutions.name' "$yaml_file" | tr -d '"')
+          fi
+          
+          echo "Device name: ${device_name}"
           
           # ESPHome stores binaries relative to the YAML file location
           # Since YAML files are in generated_yamls/, builds go to generated_yamls/.esphome/
