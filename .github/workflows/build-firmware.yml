@@ -6,6 +6,10 @@ on:
     tags:
       - '*'
 
+permissions:
+  contents: write
+  releases: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -182,15 +186,32 @@ jobs:
           
           # Find the generated binary and copy it
           device_name=$(yq eval '.esphome.name' "$yaml_file" | tr -d '"')
-          binary_path=".esphome/build/${device_name}/.pioenvs/${device_name}/firmware.bin"
           
-          if [ -f "$binary_path" ]; then
-            cp "$binary_path" "firmware/${filename}.bin"
-            echo "✅ Copied ${filename}.bin"
-          else
+          # ESPHome stores binaries in multiple possible locations, try them in order
+          possible_paths=(
+            ".pioenvs/${device_name}/firmware.bin"
+            "${device_name}/.pioenvs/${device_name}/firmware.bin"
+            ".esphome/build/${device_name}/.pioenvs/${device_name}/firmware.bin"
+          )
+          
+          binary_found=false
+          for binary_path in "${possible_paths[@]}"; do
+            if [ -f "$binary_path" ]; then
+              cp "$binary_path" "firmware/${filename}.bin"
+              echo "✅ Copied ${filename}.bin from $binary_path"
+              binary_found=true
+              break
+            fi
+          done
+          
+          if [ "$binary_found" = false ]; then
             echo "❌ Binary not found for ${filename}"
+            echo "Searched in:"
+            for path in "${possible_paths[@]}"; do
+              echo "  - $path"
+            done
             # List what's actually there for debugging
-            find .esphome -name "*.bin" -type f || echo "No .bin files found"
+            find . -name "firmware.bin" -type f 2>/dev/null || echo "No firmware.bin files found anywhere"
           fi
         done
         
@@ -310,6 +331,7 @@ jobs:
           firmware/manifest.json
           firmware/firmware-info.json
           generated_yamls/*.yaml
+        fail_on_unmatched_files: false
         draft: false
         prerelease: false
       env:
