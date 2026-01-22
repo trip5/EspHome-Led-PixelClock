@@ -176,8 +176,7 @@ jobs:
         # Create firmware output directory
         mkdir -p firmware
         
-        # TEMPORARY: Only build one file for testing
-        for yaml_file in generated_yamls/EHLPClock-Chinese.yaml; do
+        for yaml_file in generated_yamls/*.yaml; do
           filename=$(basename "$yaml_file" .yaml)
           echo "🔨 Building ${filename}..."
           
@@ -190,30 +189,16 @@ jobs:
           device_name=$(find generated_yamls/.esphome/build/ -maxdepth 1 -type d ! -name "build" -printf "%f\n" 2>/dev/null | head -1)
           
           if [ -z "$device_name" ]; then
-            echo "⚠️ Could not find build directory, trying to extract from YAML substitutions..."
             # Fallback: try to get from substitutions
             device_name=$(yq eval '.substitutions.name' "$yaml_file" | tr -d '"')
           fi
           
-          echo "Device name: ${device_name}"
-          
-          # ESPHome stores binaries relative to the YAML file location
-          # Since YAML files are in generated_yamls/, builds go to generated_yamls/.esphome/
-
-          # Probably the first one...
-
-
           possible_paths=(
             "generated_yamls/.esphome/build/${device_name}/.pioenvs/${device_name}/firmware.bin"
             ".pioenvs/${device_name}/firmware.bin"
             "${device_name}/.pioenvs/${device_name}/firmware.bin"
             ".esphome/build/${device_name}/.pioenvs/${device_name}/firmware.bin"
           )
-          
-          echo "Looking for binary in these paths:"
-          for path in "${possible_paths[@]}"; do
-            echo "  - $path"
-          done
           
           binary_found=false
           for binary_path in "${possible_paths[@]}"; do
@@ -288,11 +273,12 @@ jobs:
         EOF
         
         # Create firmware info JSON for the web interface
-        cat > firmware/firmware-info.json << 'EOF'
+        BUILD_DATE=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
+        cat > firmware/firmware-info.json << EOF
         {
           "project": "EspHome-Led-PixelClock",
           "version": "${{ steps.get_version.outputs.version }}",
-          "build_date": "$(date -u '+%Y-%m-%d %H:%M:%S UTC')",
+          "build_date": "${BUILD_DATE}",
           "variants": [
         EOF
         
@@ -330,28 +316,21 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ steps.get_version.outputs.tag }}
-        name: "EspHome-Led-PixelClock v${{ steps.get_version.outputs.version }}"
+        name: "EspHome-Led-PixelClock ${{ steps.get_version.outputs.version }}"
         body: |
-          # EspHome-Led-PixelClock v${{ steps.get_version.outputs.version }}
+          Compiled firmware binaries for EspHome-Led-PixelClock with different second-language options (all have English as a first language).
           
-          Compiled firmware binaries for EspHome-Led-PixelClock with multi-language support.
-          
-          ## What's included:
-          - Base firmware (English/Default)
-          - Language variants: Chinese, French, Greek, Korean
-          - All source YAML files
-          
-          ## Installation:
-          1. Download the appropriate .bin file for your language preference
-          2. Use ESPHome Dashboard, ESPTool, or ESP Flash Tool to flash the firmware
-          3. Configure your WiFi and timezone settings
-          
-          See FIRMWARE_INFO.md for detailed information about each variant.
+          You can download the firmware and flash yourself or you can use my [Web Installer](https://trip5.github.io/EspHome-Led-PixelClock/firmware.html).
+
+          These firmwares can get Wi-fi SSID and password through Improv via Serial or through the captive portal.
+
+          You can use the tool provided above or the official one at [Improv-wifi](https://www.improv-wifi.com/) (click on 'Improv via Serial').
+
+          The captive portal will make a hotspot with the name of the clock.  Connect to it and visit http://192.168.4.1 to configure the wi-fi.
         files: |
           firmware/*.bin
           firmware/manifest.json
           firmware/firmware-info.json
-          generated_yamls/*.yaml
         fail_on_unmatched_files: false
         draft: false
         prerelease: false

@@ -312,18 +312,34 @@
                 showStatus('Loading firmware information...', 'info');
                 
                 // Get latest release
+                console.log('Fetching release info from:', `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
                 const releaseResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
+                if (!releaseResponse.ok) {
+                    throw new Error(`GitHub API returned ${releaseResponse.status}: ${releaseResponse.statusText}`);
+                }
                 const release = await releaseResponse.json();
+                console.log('Release data:', release);
                 
                 // Find firmware-info.json asset
                 const firmwareInfoAsset = release.assets.find(asset => asset.name === 'firmware-info.json');
+                console.log('Found firmware-info.json asset:', firmwareInfoAsset);
                 if (!firmwareInfoAsset) {
-                    throw new Error('Firmware information not found');
+                    console.error('Available assets:', release.assets.map(a => a.name));
+                    throw new Error('Firmware information not found in release assets');
                 }
                 
                 // Load firmware info
+                console.log('Fetching firmware info from:', firmwareInfoAsset.browser_download_url);
                 const firmwareInfoResponse = await fetch(firmwareInfoAsset.browser_download_url);
+                if (!firmwareInfoResponse.ok) {
+                    throw new Error(`Failed to fetch firmware-info.json: ${firmwareInfoResponse.status}`);
+                }
                 firmwareData = await firmwareInfoResponse.json();
+                console.log('Firmware data:', firmwareData);
+                
+                if (!firmwareData.variants || firmwareData.variants.length === 0) {
+                    throw new Error('No firmware variants found in firmware-info.json');
+                }
                 
                 populateLanguageSelector();
                 hideStatus();
