@@ -311,26 +311,13 @@
             try {
                 showStatus('Loading firmware information...', 'info');
                 
-                // Get latest release
-                console.log('Fetching release info from:', `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
-                const releaseResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
-                if (!releaseResponse.ok) {
-                    throw new Error(`GitHub API returned ${releaseResponse.status}: ${releaseResponse.statusText}`);
-                }
-                const release = await releaseResponse.json();
-                console.log('Release data:', release);
+                // Fetch firmware-info.json from docs folder (committed to repo, CORS-friendly)
+                // Use timestamp to prevent caching
+                const timestamp = new Date().getTime();
+                const firmwareInfoUrl = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/docs/firmware-info.json?t=${timestamp}`;
+                console.log('Fetching firmware info from:', firmwareInfoUrl);
                 
-                // Find firmware-info.json asset
-                const firmwareInfoAsset = release.assets.find(asset => asset.name === 'firmware-info.json');
-                console.log('Found firmware-info.json asset:', firmwareInfoAsset);
-                if (!firmwareInfoAsset) {
-                    console.error('Available assets:', release.assets.map(a => a.name));
-                    throw new Error('Firmware information not found in release assets');
-                }
-                
-                // Load firmware info
-                console.log('Fetching firmware info from:', firmwareInfoAsset.browser_download_url);
-                const firmwareInfoResponse = await fetch(firmwareInfoAsset.browser_download_url);
+                const firmwareInfoResponse = await fetch(firmwareInfoUrl);
                 if (!firmwareInfoResponse.ok) {
                     throw new Error(`Failed to fetch firmware-info.json: ${firmwareInfoResponse.status}`);
                 }

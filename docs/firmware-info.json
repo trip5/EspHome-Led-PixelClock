@@ -1,0 +1,12 @@
+{
+  "project": "EspHome-Led-PixelClock",
+  "version": "2026.01.22",
+  "build_date": "$(date -u '+%Y-%m-%d %H:%M:%S UTC')",
+  "variants": [
+    {
+      "name": "Chinese",
+      "filename": "EHLPClock-Chinese.bin",
+      "description": "English + Chinese bilingual firmware"
+    }
+  ]
+}

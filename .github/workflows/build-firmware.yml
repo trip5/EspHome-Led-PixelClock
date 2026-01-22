@@ -312,6 +312,17 @@ jobs:
         echo "✅ Created firmware manifests"
         echo "Generated manifest.json and firmware-info.json"
     
+    - name: Commit firmware-info.json to docs
+      run: |
+        # Copy firmware-info.json to docs folder for CORS-free access
+        cp firmware/firmware-info.json docs/firmware-info.json
+        
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add docs/firmware-info.json
+        git commit -m "Update firmware-info.json for ${{ steps.get_version.outputs.version }}" || echo "No changes to commit"
+        git push || echo "Nothing to push"
+    
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
