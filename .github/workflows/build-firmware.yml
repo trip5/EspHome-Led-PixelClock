@@ -97,8 +97,17 @@ jobs:
               
               echo "📝 Creating bilingual ${output_file} (English + ${lang_name})..."
               
-              # Use yq to merge with replacement strategy (not append)
-              yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' "generated_yamls/${base_name}-base.yaml" "$lang_file" > "$output_file"
+              # Use yq to merge files, combining fonts and replacing language-specific text sensors
+              yq eval-all '
+                select(fileIndex == 0) as $base |
+                select(fileIndex == 1) as $lang |
+                $base * $lang |
+                .font = ($base.font + $lang.font) |
+                .text_sensor = (
+                  ($base.text_sensor | map(select(.id != "time_text" and .id != "date_text" and .id != "dateA_text"))) +
+                  $lang.text_sensor
+                )
+              ' "generated_yamls/${base_name}-base.yaml" "$lang_file" > "$output_file"
               
               echo "✅ Generated ${output_file}"
             fi
