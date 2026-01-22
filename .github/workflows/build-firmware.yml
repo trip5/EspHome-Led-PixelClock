@@ -97,8 +97,8 @@ jobs:
               
               echo "📝 Creating bilingual ${output_file} (English + ${lang_name})..."
               
-              # Use yq to merge the modified base YAML with language file
-              yq eval-all '. as $item ireduce ({}; . *+ $item)' "generated_yamls/${base_name}-base.yaml" "$lang_file" > "$output_file"
+              # Use yq to merge with replacement strategy (not append)
+              yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' "generated_yamls/${base_name}-base.yaml" "$lang_file" > "$output_file"
               
               echo "✅ Generated ${output_file}"
             fi
