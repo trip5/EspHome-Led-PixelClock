@@ -8,7 +8,7 @@
       "chipFamily": "ESP8266",
       "parts": [
         {
-          "path": "https://github.com/trip5/EspHome-Led-PixelClock/releases/download/2026.01.22/EHLPClock-Chinese.bin",
+          "path": "EHLPClock-Chinese.bin",
           "offset": 0
         }
       ]
