@@ -2,6 +2,7 @@ name: Build ESPHome Firmware
 
 on:
   workflow_dispatch:
+  workflow_call:  # Allow this workflow to be called by other workflows
   push:
     tags:
       - '*'
@@ -238,7 +239,7 @@ jobs:
             lang_name=$(echo "$filename" | sed 's/EHLPClock-\([^.]*\)\.bin/\1/')
             manifest_file="docs/manifests/${lang_name}-manifest.json"
             
-            # Create manifest with relative path (artifacts will be deployed to same location)
+            # Create manifest with relative path (artifacts will be deployed alongside)
             echo '{' > "$manifest_file"
             echo '  "name": "EspHome-Led-PixelClock",' >> "$manifest_file"
             echo '  "version": "${{ steps.get_version.outputs.version }}",' >> "$manifest_file"
