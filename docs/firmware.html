@@ -285,6 +285,8 @@
     <script>
         // Configuration
         const GITHUB_REPO = 'trip5/EspHome-Led-PixelClock';
+        const GITHUB_OWNER = GITHUB_REPO.split('/')[0];
+        const REPO_NAME = GITHUB_REPO.split('/')[1];
         
         // Global variables
         let firmwareData = null;
@@ -314,7 +316,7 @@
                 // Fetch firmware-info.json from GitHub Pages (where artifacts are deployed)
                 // Use timestamp to prevent caching
                 const timestamp = new Date().getTime();
-                const firmwareInfoUrl = `https://${GITHUB_OWNER}.github.io/${GITHUB_REPO.split('/')[1]}/firmware-info.json?t=${timestamp}`;
+                const firmwareInfoUrl = `https://${GITHUB_OWNER}.github.io/${REPO_NAME}/firmware-info.json?t=${timestamp}`;
                 console.log('Fetching firmware info from:', firmwareInfoUrl);
                 
                 const firmwareInfoResponse = await fetch(firmwareInfoUrl);
@@ -379,7 +381,7 @@
             const description = selectedOption.dataset.description;
             
             // Use the manifest URL from GitHub Pages (where artifacts are deployed)
-            const manifestUrl = `https://${GITHUB_OWNER}.github.io/${GITHUB_REPO.split('/')[1]}/${manifestPath}`;
+            const manifestUrl = `https://${GITHUB_OWNER}.github.io/${REPO_NAME}/${manifestPath}`;
             
             installButton.setAttribute('manifest', manifestUrl);
             installButton.style.display = 'block';
