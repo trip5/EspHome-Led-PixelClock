@@ -224,63 +224,52 @@ jobs:
         echo "📦 Generated firmware files:"
         ls -la firmware/ || echo "No firmware directory created"
     
-    - name: Create firmware manifest
+    - name: Create firmware manifests
       run: |
-        echo "📝 Creating firmware manifest..."
+        echo "📝 Creating firmware manifests..."
         
-        # Create JSON manifest for web installer
-        cat > firmware/manifest.json << 'EOF'
-        {
-          "name": "EspHome-Led-PixelClock",
-          "version": "${{ steps.get_version.outputs.version }}",
-          "home_assistant_domain": "esphome",
-          "funding_url": "https://github.com/sponsors/trip5",
-          "builds": [
-        EOF
+        # Create individual manifest files for each firmware variant
+        mkdir -p docs/manifests
         
-        # Add each firmware variant to the manifest
-        FIRST=true
         for bin_file in firmware/EHLPClock-*.bin; do
           if [ -f "$bin_file" ]; then
             filename=$(basename "$bin_file")
             lang_name=$(echo "$filename" | sed 's/EHLPClock-\([^.]*\)\.bin/\1/')
+            manifest_file="docs/manifests/${lang_name}-manifest.json"
             
-            # Add comma separator except for first entry
-            if [ "$FIRST" = "false" ]; then
-              echo "    ," >> firmware/manifest.json
-            fi
-            FIRST=false
-            
-            # Add build entry
-            cat >> firmware/manifest.json << EOF
+            # Create manifest with absolute URL to release asset
+            cat > "$manifest_file" <<MANIFEST_EOF
             {
-              "chipFamily": "ESP8266",
-              "parts": [
+              "name": "EspHome-Led-PixelClock",
+              "version": "${{ steps.get_version.outputs.version }}",
+              "home_assistant_domain": "esphome",
+              "funding_url": "https://github.com/sponsors/trip5",
+              "builds": [
                 {
-                  "path": "${filename}",
-                  "offset": 0
+                  "chipFamily": "ESP8266",
+                  "parts": [
+                    {
+                      "path": "https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.tag }}/${filename}",
+                      "offset": 0
+                    }
+                  ]
                 }
               ]
             }
-        EOF
+            MANIFEST_EOF
+            echo "Created manifest: $manifest_file"
           fi
         done
         
-        # Close JSON
-        cat >> firmware/manifest.json << 'EOF'
-          ]
-        }
-        EOF
-        
         # Create firmware info JSON for the web interface
         BUILD_DATE=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
-        cat > firmware/firmware-info.json << EOF
+        cat > docs/firmware-info.json <<INFO_EOF
         {
           "project": "EspHome-Led-PixelClock",
           "version": "${{ steps.get_version.outputs.version }}",
           "build_date": "${BUILD_DATE}",
           "variants": [
-        EOF
+        INFO_EOF
         
         # Add variants info
         FIRST=true
@@ -290,37 +279,34 @@ jobs:
             lang_name=$(echo "$filename" | sed 's/EHLPClock-\([^.]*\)\.bin/\1/')
             
             if [ "$FIRST" = "false" ]; then
-              echo "    ," >> firmware/firmware-info.json
+              echo "  ," >> docs/firmware-info.json
             fi
             FIRST=false
             
-            cat >> firmware/firmware-info.json << EOF
+            cat >> docs/firmware-info.json <<VARIANT_EOF
             {
               "name": "${lang_name}",
-              "filename": "${filename}",
+              "manifest": "manifests/${lang_name}-manifest.json",
               "description": "English + ${lang_name} bilingual firmware"
             }
-        EOF
+            VARIANT_EOF
           fi
         done
         
-        cat >> firmware/firmware-info.json << 'EOF'
+        cat >> docs/firmware-info.json <<'CLOSE_EOF'
           ]
         }
-        EOF
+        CLOSE_EOF
         
-        echo "✅ Created firmware manifests"
-        echo "Generated manifest.json and firmware-info.json"
+        echo "✅ Created firmware manifests and info"
     
-    - name: Commit firmware-info.json to docs
+    - name: Commit manifest files to docs
       run: |
-        # Copy firmware-info.json to docs folder for CORS-free access
-        cp firmware/firmware-info.json docs/firmware-info.json
-        
+        # Commit manifest files to docs folder for CORS-free access via GitHub Pages
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
-        git add docs/firmware-info.json
-        git commit -m "Update firmware-info.json for ${{ steps.get_version.outputs.version }}" || echo "No changes to commit"
+        git add docs/manifests/*.json docs/firmware-info.json
+        git commit -m "Update firmware manifests for ${{ steps.get_version.outputs.version }}" || echo "No changes to commit"
         git push || echo "Nothing to push"
     
     - name: Create Release
@@ -340,8 +326,6 @@ jobs:
           The captive portal will make a hotspot with the name of the clock.  Connect to it and visit http://192.168.4.1 to configure the wi-fi.
         files: |
           firmware/*.bin
-          firmware/manifest.json
-          firmware/firmware-info.json
         fail_on_unmatched_files: false
         draft: false
         prerelease: false

@@ -346,7 +346,7 @@
                 const option = document.createElement('option');
                 option.value = variant.name;
                 option.textContent = `${variant.name} (English + ${variant.name})`;
-                option.dataset.filename = variant.filename;
+                option.dataset.manifest = variant.manifest;
                 option.dataset.description = variant.description;
                 languageSelect.appendChild(option);
             });
@@ -375,32 +375,11 @@
                 return;
             }
             
-            const filename = selectedOption.dataset.filename;
+            const manifestPath = selectedOption.dataset.manifest;
             const description = selectedOption.dataset.description;
             
-            // Get latest release for download URL
-            const releaseResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
-            const release = await releaseResponse.json();
-            
-            // Find the binary file
-            const binaryAsset = release.assets.find(asset => asset.name === filename);
-            if (!binaryAsset) {
-                showStatus('Firmware file not found', 'error');
-                return;
-            }
-            
-            // Configure install button
-            const manifestUrl = `data:application/json,${encodeURIComponent(JSON.stringify({
-                name: "EspHome-Led-PixelClock",
-                version: firmwareData.version,
-                builds: [{
-                    chipFamily: "ESP8266",
-                    parts: [{
-                        path: binaryAsset.browser_download_url,
-                        offset: 0
-                    }]
-                }]
-            }))}`;
+            // Use the manifest URL from GitHub Pages (CORS-enabled)
+            const manifestUrl = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/docs/${manifestPath}`;
             
             installButton.setAttribute('manifest', manifestUrl);
             installButton.style.display = 'block';
