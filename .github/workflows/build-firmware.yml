@@ -314,14 +314,17 @@ jobs:
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
         git add docs/manifests/*.json docs/firmware-info.json
-        git commit -m "Update firmware manifests for ${{ steps.get_version.outputs.version }}" || echo "No changes to commit"
+        git commit -m "Update firmware manifests for ${{ steps.get_version.outputs.version }} [skip ci]" || echo "No changes to commit"
         git push origin main || echo "Nothing to push"
     
     - name: Upload firmware artifacts
       uses: actions/upload-artifact@v4
       with:
         name: firmware-binaries
-        path: firmware/*.bin
+        path: |
+          firmware/*.bin
+          docs/firmware-info.json
+          docs/manifests/*.json
         retention-days: 90
     
     - name: Create Release

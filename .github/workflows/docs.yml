@@ -67,9 +67,12 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           mkdir -p site/manifests
-          cp firmware-temp/*.bin site/manifests/
-          echo "✅ Copied firmware binaries to site/manifests/"
+          cp firmware-temp/*.bin site/manifests/ 2>/dev/null || true
+          cp firmware-temp/docs/firmware-info.json site/ 2>/dev/null || true
+          cp firmware-temp/docs/manifests/*.json site/manifests/ 2>/dev/null || true
+          echo "✅ Copied firmware files to site/"
           ls -la site/manifests/
+          ls -la site/firmware-info.json 2>/dev/null || echo "firmware-info.json not found"
         
       - name: Setup Pages
         uses: actions/configure-pages@v4
