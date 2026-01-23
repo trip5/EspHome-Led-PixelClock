@@ -262,7 +262,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.get_version.outputs.tag }}
-          name: "EspHome-Led-PixelClock ${{ steps.get_version.outputs.version }}"
+          name: "${{ steps.get_version.outputs.tag }}"
           body: |
             Compiled firmware binaries for EspHome-Led-PixelClock with different second-language options (all have English as a first language).
           
