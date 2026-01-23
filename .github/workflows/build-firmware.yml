@@ -91,7 +91,7 @@ jobs:
               lang_name=$(basename "$lang_file" .yaml)
               output_file="generated_yamls/${base_name}-${lang_name}.yaml"
               
-              echo "📝 Creating bilingual ${output_file} (English + ${lang_name})..."
+              echo "📝 Creating ${output_file} (English + ${lang_name})..."
               
               # Use yq to merge files with ID-aware replacement strategy
               # Fonts: Complete replacement when IDs match
@@ -311,7 +311,7 @@ jobs:
             echo '  {' >> docs/firmware-info.json
             echo "    \"name\": \"${display_name}\"," >> docs/firmware-info.json
             echo "    \"manifest\": \"manifests/${variant_id}-manifest.json\"," >> docs/firmware-info.json
-            echo "    \"description\": \"English + ${lang_name} bilingual firmware\"" >> docs/firmware-info.json
+            echo "    \"description\": \"English + ${lang_name} firmware\"" >> docs/firmware-info.json
             echo '  }' >> docs/firmware-info.json
           fi
         done

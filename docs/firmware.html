@@ -98,6 +98,31 @@
             margin: 10px;
         }
 
+        esp-web-install-button button {
+            padding: 16px 48px;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 8px;
+            border: none;
+            background: linear-gradient(135deg, #049cdb 0%, #0273a5 100%);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(4, 156, 219, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        esp-web-install-button button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(4, 156, 219, 0.6);
+        }
+
+        esp-web-install-button button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.4);
+        }
+
         .wifi-section {
             margin: 30px 0;
             padding: 25px;
@@ -244,7 +269,16 @@
                 <li>Connect device to the Wi-Fi network</li>
                 <li>Visit the device's hosted web interface</li>
                 <li>Access logs and send terminal commands</li>
+                <li>Add the device to Home Assistant</li>
             </ul>
+
+            <h3>Flashing Mode</h3>
+            <p>Flashing is dead-simple. Hold the 'Download' button while powering-on the clock, or press the reset button while holding 'Download' button.
+               Probably. Your clock may be different.</p>
+
+            <h3>Improv Mode</h3>
+            <p>To send Wi-fi configuration, visit the device's WebUI, or add to Home Assistant, reset without holding the 'Download' button.
+                Then click 'Connect' again.</p>
             
             <div class="firmware-selector">
                 <label for="language-select">Select Firmware:</label>
@@ -261,10 +295,12 @@
         </div>
     </div>
 
-    <p style="text-align: center; color: #ccc; margin: 30px 0; font-size: 14px;">
-        Flashing is dead-simple. Hold the 'Download' button while powering-on the clock, or press the reset button while holding 'Download' button.
-        Probably. Your clock may be different.<br /><br />
-        To send Wi-fi configuration, reset without holding the 'Download' button.
+    <p style="text-align: center; color: #ccc; margin: 30px 0; font-size: 16px;">
+        These firmwares likely contain Time Zones that do not match yours.  That's OK, you can change them!
+        For non-HA versions, you can change the 
+        <a href="https://trip5.github.io/EspHome-Led-PixelClock/#time-zone-posix" target="_blank" style="color: #667eea;">POSIX string of the Alternate Time Zone</a>
+        in the device's Web UI. For HA versions, you can
+        <a href="https://trip5.github.io/EspHome-Led-PixelClock/#override-time-zones" target="_blank" style="color: #667eea;">override the time zones</a> with Helpers.
     </p>
 
     <div class="footer" style="background: #1a1a1a; color: white; text-align: center; padding: 30px 40px; margin-top: 0; border-top: 1px solid #333;">
@@ -329,7 +365,7 @@
             firmwareData.variants.forEach((variant, index) => {
                 const option = document.createElement('option');
                 option.value = variant.name;
-                option.textContent = `${variant.name} (English + ${variant.name})`;
+                option.textContent = `${variant.name} (${variant.description})`;
                 option.dataset.manifest = variant.manifest;
                 option.dataset.description = variant.description;
                 languageSelect.appendChild(option);
