@@ -118,6 +118,17 @@ jobs:
                   ($lang.text_sensor // [])
                 )
               ' "generated_yamls/base/${base_name}-base.yaml" "$lang_file" > "$output_file"
+              
+              echo "✅ Generated ${output_file}"
+            fi
+          done
+        done
+        
+        # Clean up timezone offset code from HA versions
+        echo "🧹 Cleaning timezone offset code from HA versions..."
+        for ha_file in generated_yamls/EHLPClock-HA-*.yaml; do
+          if [ -f "$ha_file" ]; then
+            echo "Cleaning timezone references from $ha_file"
             
             # Remove the timezone offset if block and its contents
             # This removes the entire if statement that contains tzoffset references
@@ -133,7 +144,7 @@ jobs:
           fi
         done
         
-        echo "� Generated firmware files:"
+        echo "📦 Generated firmware files:"
         ls -la firmware/ || echo "No firmware directory created"
     
     - name: Validate YAML files
