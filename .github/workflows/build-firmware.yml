@@ -214,6 +214,19 @@ jobs:
           fi
         done
         
+        # Rename HA firmware files to move -HA suffix after language name
+        echo "🔄 Renaming HA firmware files..."
+        for bin_file in firmware/EHLPClock-HA-*.bin; do
+          if [ -f "$bin_file" ]; then
+            # Extract language name: EHLPClock-HA-Chinese.bin -> Chinese
+            lang=$(basename "$bin_file" | sed 's/EHLPClock-HA-\(.*\)\.bin/\1/')
+            # Rename to: EHLPClock-Chinese-HA.bin
+            new_name="firmware/EHLPClock-${lang}-HA.bin"
+            mv "$bin_file" "$new_name"
+            echo "Renamed $(basename "$bin_file") -> $(basename "$new_name")"
+          fi
+        done
+        
         echo "📦 Generated firmware files:"
         ls -la firmware/ || echo "No firmware directory created"
     
@@ -229,10 +242,12 @@ jobs:
             filename=$(basename "$bin_file")
             
             # Determine variant ID for manifest filename
-            if [[ "$filename" == *"-HA-"* ]]; then
-              lang_name=$(echo "$filename" | sed 's/EHLPClock-HA-\([^.]*\)\.bin/\1/')
-              variant_id="HA-${lang_name}"
+            if [[ "$filename" == *"-HA.bin" ]]; then
+              # EHLPClock-Korean-HA.bin -> Korean-HA
+              lang_name=$(echo "$filename" | sed 's/EHLPClock-\(.*\)-HA\.bin/\1/')
+              variant_id="${lang_name}-HA"
             else
+              # EHLPClock-Korean.bin -> Korean
               lang_name=$(echo "$filename" | sed 's/EHLPClock-\([^.]*\)\.bin/\1/')
               variant_id="${lang_name}"
             fi
@@ -276,11 +291,13 @@ jobs:
             filename=$(basename "$bin_file")
             
             # Determine if HA version
-            if [[ "$filename" == *"-HA-"* ]]; then
-              lang_name=$(echo "$filename" | sed 's/EHLPClock-HA-\([^.]*\)\.bin/\1/')
+            if [[ "$filename" == *"-HA.bin" ]]; then
+              # EHLPClock-Korean-HA.bin -> Korean
+              lang_name=$(echo "$filename" | sed 's/EHLPClock-\(.*\)-HA\.bin/\1/')
               display_name="${lang_name} (Home Assistant)"
-              variant_id="HA-${lang_name}"
+              variant_id="${lang_name}-HA"
             else
+              # EHLPClock-Korean.bin -> Korean  
               lang_name=$(echo "$filename" | sed 's/EHLPClock-\([^.]*\)\.bin/\1/')
               display_name="${lang_name}"
               variant_id="${lang_name}"
