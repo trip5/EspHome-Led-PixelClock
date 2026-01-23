@@ -32,7 +32,9 @@ You can read this: [Physically Connecting to your Device](https://esphome.io/gui
 
 ---
 
-## LED Matrix Clock
+## LED Pixel Clock
+
+### LED Matrix Clock
 
 ![image](./images/DotMatrixClock.jpg)
 
@@ -43,11 +45,18 @@ Here is my clock, using the Matrix Font and a bit of paper sandwiched between th
 
 ![image](./images/MatrixClock-mine.jpg)
 
+### DIY
+
+You can probably build a clock using an ESP and a few MAX7219 Digit Display pieces.
+If you've got the ability to make one, it's not too hard to edit the `yaml` file to adapt it.
+
 ### Flashing
 
-Flashing is dead-simple. Hold the 'Download' button while powering-on the clock, or press the reset button while holding 'Download' button.
+You can use ESPHome to make it completely custom or you can use my [Web Tool](https://trip5.github.io/EspHome-Led-PixelClock/firmware.html).
 
-You can use ESPHome to make it completely custom or you can use my [Web Installer](https://trip5.github.io/EspHome-Led-PixelClock/firmware.html).
+#### LED Matrix Clock
+
+Flashing is dead-simple. Hold the 'Download' button while powering-on the clock, or press the reset button while holding 'Download' button.
 
 ---
 
