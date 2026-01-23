@@ -194,7 +194,7 @@ jobs:
               echo '      "chipFamily": "ESP8266",' >> "$manifest_file"
               echo '      "parts": [' >> "$manifest_file"
               echo '        {' >> "$manifest_file"
-              echo "          \"path\": \"${filename}\"," >> "$manifest_file"
+              echo "          \"path\": \"firmware/${filename}\"," >> "$manifest_file"
               echo '          "offset": 0' >> "$manifest_file"
               echo '        }' >> "$manifest_file"
               echo '      ]' >> "$manifest_file"
@@ -216,7 +216,7 @@ jobs:
               filename=$(basename "$bin_file")
               if [[ "$filename" == *"-HA.bin" ]]; then
                 lang_name=$(echo "$filename" | sed 's/EHLPClock-\(.*\)-HA\.bin/\1/')
-                display_name="${lang_name} (Home Assistant)"
+                display_name="${lang_name} - Home Assistant"
                 variant_id="${lang_name}-HA"
               else
                 lang_name=$(echo "$filename" | sed 's/EHLPClock-\([^.]*\)\.bin/\1/')
