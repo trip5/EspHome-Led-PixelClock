@@ -223,11 +223,20 @@ jobs:
         # Create individual manifest files for each firmware variant
         mkdir -p docs/manifests
         
-        for bin_file in firmware/EHLPClock-*.bin; do
+        for bin_file in firmware/*.bin; do
           if [ -f "$bin_file" ]; then
             filename=$(basename "$bin_file")
-            lang_name=$(echo "$filename" | sed 's/EHLPClock-\([^.]*\)\.bin/\1/')
-            manifest_file="docs/manifests/${lang_name}-manifest.json"
+            
+            # Determine variant ID for manifest filename
+            if [[ "$filename" == *"-HA-"* ]]; then
+              lang_name=$(echo "$filename" | sed 's/EHLPClock-HA-\([^.]*\)\.bin/\1/')
+              variant_id="HA-${lang_name}"
+            else
+              lang_name=$(echo "$filename" | sed 's/EHLPClock-\([^.]*\)\.bin/\1/')
+              variant_id="${lang_name}"
+            fi
+            
+            manifest_file="docs/manifests/${variant_id}-manifest.json"
             
             # Create manifest with relative path (artifacts will be deployed to site/manifests)
             echo '{' > "$manifest_file"
@@ -259,12 +268,22 @@ jobs:
         echo "  \"build_date\": \"${BUILD_DATE}\"," >> docs/firmware-info.json
         echo '  "variants": [' >> docs/firmware-info.json
         
-        # Add variants info
+        # Add variants info for both standard and HA versions
         FIRST=true
-        for bin_file in firmware/EHLPClock-*.bin; do
+        for bin_file in firmware/*.bin; do
           if [ -f "$bin_file" ]; then
             filename=$(basename "$bin_file")
-            lang_name=$(echo "$filename" | sed 's/EHLPClock-\([^.]*\)\.bin/\1/')
+            
+            # Determine if HA version
+            if [[ "$filename" == *"-HA-"* ]]; then
+              lang_name=$(echo "$filename" | sed 's/EHLPClock-HA-\([^.]*\)\.bin/\1/')
+              display_name="${lang_name} (Home Assistant)"
+              variant_id="HA-${lang_name}"
+            else
+              lang_name=$(echo "$filename" | sed 's/EHLPClock-\([^.]*\)\.bin/\1/')
+              display_name="${lang_name}"
+              variant_id="${lang_name}"
+            fi
             
             if [ "$FIRST" = "false" ]; then
               echo "  ," >> docs/firmware-info.json
@@ -272,8 +291,8 @@ jobs:
             FIRST=false
             
             echo '  {' >> docs/firmware-info.json
-            echo "    \"name\": \"${lang_name}\"," >> docs/firmware-info.json
-            echo "    \"manifest\": \"manifests/${lang_name}-manifest.json\"," >> docs/firmware-info.json
+            echo "    \"name\": \"${display_name}\"," >> docs/firmware-info.json
+            echo "    \"manifest\": \"manifests/${variant_id}-manifest.json\"," >> docs/firmware-info.json
             echo "    \"description\": \"English + ${lang_name} bilingual firmware\"" >> docs/firmware-info.json
             echo '  }' >> docs/firmware-info.json
           fi
