@@ -1,0 +1,17 @@
+{
+  "name": "EspHome-Led-PixelClock",
+  "version": "2026.01.22",
+  "home_assistant_domain": "esphome",
+  "funding_url": "https://github.com/sponsors/trip5",
+  "builds": [
+    {
+      "chipFamily": "ESP8266",
+      "parts": [
+        {
+          "path": "EHLPClock-Korean.bin",
+          "offset": 0
+        }
+      ]
+    }
+  ]
+}
