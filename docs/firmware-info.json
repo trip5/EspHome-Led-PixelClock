@@ -1,12 +1,24 @@
 {
   "project": "EspHome-Led-PixelClock",
   "version": "2026.01.22",
-  "build_date": "2026-01-23 09:00:42 UTC",
+  "build_date": "2026-01-23 09:32:08 UTC",
   "variants": [
+  {
+    "name": "Chinese (Home Assistant)",
+    "manifest": "manifests/Chinese-HA-manifest.json",
+    "description": "English + Chinese bilingual firmware"
+  }
+  ,
   {
     "name": "Chinese",
     "manifest": "manifests/Chinese-manifest.json",
     "description": "English + Chinese bilingual firmware"
+  }
+  ,
+  {
+    "name": "French (Home Assistant)",
+    "manifest": "manifests/French-HA-manifest.json",
+    "description": "English + French bilingual firmware"
   }
   ,
   {
@@ -16,32 +28,20 @@
   }
   ,
   {
+    "name": "Greek (Home Assistant)",
+    "manifest": "manifests/Greek-HA-manifest.json",
+    "description": "English + Greek bilingual firmware"
+  }
+  ,
+  {
     "name": "Greek",
     "manifest": "manifests/Greek-manifest.json",
     "description": "English + Greek bilingual firmware"
   }
   ,
   {
-    "name": "Chinese (Home Assistant)",
-    "manifest": "manifests/HA-Chinese-manifest.json",
-    "description": "English + Chinese bilingual firmware"
-  }
-  ,
-  {
-    "name": "French (Home Assistant)",
-    "manifest": "manifests/HA-French-manifest.json",
-    "description": "English + French bilingual firmware"
-  }
-  ,
-  {
-    "name": "Greek (Home Assistant)",
-    "manifest": "manifests/HA-Greek-manifest.json",
-    "description": "English + Greek bilingual firmware"
-  }
-  ,
-  {
     "name": "Korean (Home Assistant)",
-    "manifest": "manifests/HA-Korean-manifest.json",
+    "manifest": "manifests/Korean-HA-manifest.json",
     "description": "English + Korean bilingual firmware"
   }
   ,
