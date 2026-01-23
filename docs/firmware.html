@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="images/EHLC.png">
     <title>EspHome-Led-PixelClock - Web Installer</title>
     <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
     <style>
@@ -228,20 +229,25 @@
     <div class="container">
         <div class="header">
             <h1>EspHome-Led-PixelClock</h1>
-            <p>Flash firmware directly from your browser</p>
+            <p>ESP Web Tool</p>
             <div class="made-for-esphome">
-                <a href="https://esphome.io/guides/made_for_esphome/" target="_blank">
-                    <img src="https://esphome.io/_images/made-for-esphome-white-on-black.png" alt="Made for ESPHome">
-                </a>
+                <a href="https://github.com/trip5/EspHome-Led-PixelClock" target="_blank"><img src="EHLPC.png" alt="EspHome-Led-PixelClock" style="height: 80px; margin-right: 20px;"></a>
+                <a href="https://esphome.io/guides/made_for_esphome/" target="_blank"><img src="https://esphome.io/_images/made-for-esphome-white-on-black.png" alt="Made for ESPHome" style="height: 80px;"></a>
             </div>
         </div>
 
         <div class="firmware-section">
-            <h3>🌍 Select Language</h3>
-            <p>Choose your preferred language. All firmware includes English plus your selected language.</p>
+            <h3>Flash Firmware</h3>
+            <p>With this tool, you can:</p>
+            <ul style="color: #495057; margin-left: 20px;">
+                <li>Install & update firmware</li>
+                <li>Connect device to the Wi-Fi network</li>
+                <li>Visit the device's hosted web interface</li>
+                <li>Access logs and send terminal commands</li>
+            </ul>
             
             <div class="firmware-selector">
-                <label for="language-select">Language Variant:</label>
+                <label for="language-select">Select Firmware:</label>
                 <select id="language-select">
                     <option value="">Loading available firmware...</option>
                 </select>
@@ -249,37 +255,23 @@
 
             <div class="install-section">
                 <esp-web-install-button id="install-button" style="display: none;">
-                    <button slot="activate">Install Firmware</button>
+                    <button slot="activate">Connect</button>
                 </esp-web-install-button>
-                <div id="firmware-info" class="info-box" style="display: none;">
-                    <h3>Selected Firmware</h3>
-                    <p id="firmware-description"></p>
-                </div>
             </div>
         </div>
+    </div>
 
-        <div class="wifi-section">
-            <h3>📶 WiFi Configuration</h3>
-            <p>After flashing, you can configure WiFi credentials directly through the browser using Improv Serial.</p>
-            
-            <div class="wifi-form">
-                <input type="text" id="wifi-ssid" placeholder="WiFi Network Name (SSID)" maxlength="32">
-                <input type="password" id="wifi-password" placeholder="WiFi Password" maxlength="64">
-                <button id="configure-wifi" disabled>Configure WiFi</button>
-            </div>
-            
-            <div id="wifi-status" class="status-message"></div>
-            
-            <div class="info-box">
-                <h3>💡 Setup Steps</h3>
-                <p>
-                    1. Select your language above<br>
-                    2. Click "Install Firmware" and connect your device<br>
-                    3. Enter your WiFi details and click "Configure WiFi"<br>
-                    4. Your clock will connect automatically!
-                </p>
-            </div>
-        </div>
+    <p style="text-align: center; color: #ccc; margin: 30px 0; font-size: 14px;">
+        Flashing is dead-simple. Hold the 'Download' button while powering-on the clock, or press the reset button while holding 'Download' button.
+        Probably. Your clock may be different.<br /><br />
+        To send Wi-fi configuration, reset without holding the 'Download' button.
+    </p>
+
+    <div class="footer" style="background: #1a1a1a; color: white; text-align: center; padding: 30px 40px; margin-top: 0; border-top: 1px solid #333;">
+        <a href="https://github.com/trip5" target="_blank">
+            <img src="https://raw.githubusercontent.com/trip5/trip5/main/images/Trip5_outline.svg" alt="Trip5">
+        </a>
+        <p style="margin: 10px 0 5px; color: #ccc;">Made with <a href="https://esphome.github.io/esp-web-tools/" target="_blank" style="color: #667eea;">ESP Web Tools</a></p>
     </div>
 
     <script>
@@ -295,12 +287,6 @@
         // DOM elements
         const languageSelect = document.getElementById('language-select');
         const installButton = document.getElementById('install-button');
-        const firmwareInfo = document.getElementById('firmware-info');
-        const firmwareDescription = document.getElementById('firmware-description');
-        const wifiSsid = document.getElementById('wifi-ssid');
-        const wifiPassword = document.getElementById('wifi-password');
-        const configureWifiButton = document.getElementById('configure-wifi');
-        const wifiStatus = document.getElementById('wifi-status');
 
         // Initialize the app
         async function init() {
@@ -311,8 +297,6 @@
         // Load latest firmware data from GitHub releases
         async function loadLatestFirmware() {
             try {
-                showStatus('Loading firmware information...', 'info');
-                
                 // Fetch firmware-info.json from GitHub Pages (where artifacts are deployed)
                 // Use timestamp to prevent caching
                 const timestamp = new Date().getTime();
@@ -331,20 +315,18 @@
                 }
                 
                 populateLanguageSelector();
-                hideStatus();
                 
             } catch (error) {
                 console.error('Error loading firmware:', error);
-                showStatus('Failed to load firmware information. Please try again later.', 'error');
                 languageSelect.innerHTML = '<option value="">Failed to load firmware</option>';
             }
         }
 
         // Populate the language selector
         function populateLanguageSelector() {
-            languageSelect.innerHTML = '<option value="">Choose your language...</option>';
+            languageSelect.innerHTML = '';
             
-            firmwareData.variants.forEach(variant => {
+            firmwareData.variants.forEach((variant, index) => {
                 const option = document.createElement('option');
                 option.value = variant.name;
                 option.textContent = `${variant.name} (English + ${variant.name})`;
@@ -352,118 +334,38 @@
                 option.dataset.description = variant.description;
                 languageSelect.appendChild(option);
             });
+            
+            // Auto-select first firmware and trigger change
+            if (firmwareData.variants.length > 0) {
+                onLanguageChange();
+            }
         }
 
         // Setup event listeners
         function setupEventListeners() {
             languageSelect.addEventListener('change', onLanguageChange);
-            configureWifiButton.addEventListener('click', configureWifi);
-            
-            // Enable WiFi configuration when both fields have values
-            [wifiSsid, wifiPassword].forEach(input => {
-                input.addEventListener('input', () => {
-                    configureWifiButton.disabled = !wifiSsid.value || !wifiPassword.value;
-                });
-            });
         }
 
         // Handle language selection
         async function onLanguageChange() {
             const selectedOption = languageSelect.selectedOptions[0];
             
-            if (!selectedOption.value) {
+            if (!selectedOption || !selectedOption.value) {
                 installButton.style.display = 'none';
-                firmwareInfo.style.display = 'none';
                 return;
             }
             
             const manifestPath = selectedOption.dataset.manifest;
-            const description = selectedOption.dataset.description;
             
             // Use the manifest URL from GitHub Pages (where artifacts are deployed)
             const manifestUrl = `https://${GITHUB_OWNER}.github.io/${REPO_NAME}/${manifestPath}`;
             
             installButton.setAttribute('manifest', manifestUrl);
             installButton.style.display = 'block';
-            
-            // Show firmware info
-            firmwareDescription.textContent = description;
-            firmwareInfo.style.display = 'block';
-        }
-
-        // Configure WiFi using Improv Serial
-        async function configureWifi() {
-            if (!navigator.serial) {
-                showStatus('Serial API not supported in this browser. Please use Chrome, Edge, or Opera.', 'error');
-                return;
-            }
-
-            try {
-                configureWifiButton.disabled = true;
-                configureWifiButton.textContent = 'Connecting...';
-                showStatus('Connecting to device...', 'info');
-
-                // Request serial port
-                const port = await navigator.serial.requestPort();
-                await port.open({ baudRate: 115200 });
-
-                showStatus('Sending WiFi credentials...', 'info');
-
-                // Simple Improv Serial implementation
-                const writer = port.writable.getWriter();
-                
-                // Send WiFi credentials in Improv format
-                const ssid = wifiSsid.value;
-                const password = wifiPassword.value;
-                
-                // Improv WiFi command
-                const command = new Uint8Array([
-                    0x49, 0x4D, 0x50, 0x52, 0x4F, 0x56, // "IMPROV"
-                    0x01, // Version
-                    0x01, // Type: WiFi settings
-                    ssid.length, ...new TextEncoder().encode(ssid),
-                    password.length, ...new TextEncoder().encode(password)
-                ]);
-                
-                await writer.write(command);
-                await writer.close();
-                
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                await port.close();
-                
-                showStatus('WiFi credentials sent successfully! Device should connect automatically.', 'success');
-                
-            } catch (error) {
-                console.error('WiFi configuration error:', error);
-                showStatus('Failed to configure WiFi. Make sure your device is connected and try again.', 'error');
-            } finally {
-                configureWifiButton.disabled = false;
-                configureWifiButton.textContent = 'Configure WiFi';
-            }
-        }
-
-        // Show status message
-        function showStatus(message, type) {
-            wifiStatus.textContent = message;
-            wifiStatus.className = `status-message status-${type}`;
-            wifiStatus.style.display = 'block';
-        }
-
-        // Hide status message
-        function hideStatus() {
-            wifiStatus.style.display = 'none';
         }
 
         // Initialize when page loads
         document.addEventListener('DOMContentLoaded', init);
     </script>
-    
-    <div class="footer">
-        <a href="https://github.com/trip5" target="_blank">
-            <img src="https://raw.githubusercontent.com/trip5/trip5/main/images/Trip5_outline.svg" alt="Trip5">
-        </a>
-        <br>
-        <span><a href="https://github.com/trip5/EspHome-Led-PixelClock/" target="_blank">https://github.com/trip5/EspHome-Led-PixelClock/</a></span>
-    </div>
 </body>
 </html>

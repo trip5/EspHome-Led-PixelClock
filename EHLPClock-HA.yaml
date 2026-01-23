@@ -259,6 +259,8 @@ ota:
 
 captive_portal:
 
+improv_serial:
+
 text_sensor:
   - platform: template
     id: project_version

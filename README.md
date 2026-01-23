@@ -1,4 +1,10 @@
+![image](./images/EHLPC.png)
+
 # EspHome-Led-PixelClock
+
+***This documentation is the same on the [Github Page](https://trip5.github.io/EspHome-Led-PixelClock/), which may be easier to read than the [Github Repository](https://github.com/trip5/EspHome-Led-PixelClock).***
+
+## Introduction
 
 EHLPC is meant to be used on ESP-based MAX7219 Digit Display Clocks using ESPHome. So far, it works with an un-named Aliexpress Clock. It can probably be adapted for use with other MAX7219 Digit clocks. And, of course, it's ESPHome, so it's only limited by your imagination and skill.
 
@@ -37,7 +43,7 @@ Here is my clock, using the Matrix Font and a bit of paper sandwiched between th
 
 ### Flashing
 
-Flashing is dead-simple. Hold the 'Download' button while powering-on the clock or by pressing the reset button.
+Flashing is dead-simple. Hold the 'Download' button while powering-on the clock, or press the reset button while holding 'Download' button.
 
 You can use ESPHome to make it completely custom or you can use my [Web Installer](https://trip5.github.io/EspHome-Led-PixelClock/firmware.html).
 
@@ -308,7 +314,7 @@ I've found anything below 8kB available to the heap can cause constant crashes.
 
 | Date       | Release Notes    |
 | ---------- | ---------------- |
-| 2026.01.22 | Added POSIX to non-HA version and overrides to HA version, removed device's friendly name from entities, mdi icons added, various fixes |
+| 2026.01.22 | Added POSIX to non-HA version and overrides to HA version, removed device's friendly name from entities, mdi icons & improv serial added, various fixes |
 | 2025.05.26 | Minor fixes, language filters updated |
 | 2024.12.09 | Recoded to remove many global variables, relying on numbers and switches where possible, hard-coded variables removed |
 | 2024.11.11 | OTA display status works, Display off added to regular version (hard-coded variables), power measurements complete |

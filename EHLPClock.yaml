@@ -215,6 +215,8 @@ ota:
 
 captive_portal:
 
+improv_serial:
+
 text_sensor:
   - platform: wifi_info
     ip_address:

@@ -6,6 +6,7 @@ repo_name: trip5/EspHome-Led-PixelClock
 
 theme:
   name: material
+  favicon: images/favicon.png
   features:
     - navigation.sections
     - navigation.expand
@@ -31,6 +32,10 @@ theme:
         name: Switch to light mode
 
 markdown_extensions:
+  - pymdownx.magiclink:
+      repo_url_shorthand: true
+      user: trip5
+      repo: EspHome-Led-PixelClock
   - pymdownx.highlight:
       anchor_linenums: true
   - pymdownx.inlinehilite
@@ -46,8 +51,9 @@ markdown_extensions:
       permalink: true
       toc_depth: 3
 
-nav:
-  - Home: index.md
+# Single page site, no need for navigation menu
+# nav:
+#   - Home: index.md
 
 plugins:
   - search

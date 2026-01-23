@@ -69,16 +69,10 @@ jobs:
         # Create output directory
         mkdir -p generated_yamls
         
-        # Prepare base file with improv_serial and remove secrets (for merging with languages)
+        # Prepare base files and remove secrets (for merging with languages)
         echo "🔧 Preparing base YAML for language merging..."
         cp EHLPClock.yaml generated_yamls/EHLPClock-base.yaml
         cp EHLPClock-HA.yaml generated_yamls/EHLPClock-HA-base.yaml
-        
-        # Remove captive_portal and add improv_serial before wifi section
-        sed -i '/^captive_portal:/d' generated_yamls/EHLPClock-base.yaml
-        sed -i '/^wifi:/i\improv_serial:\n' generated_yamls/EHLPClock-base.yaml
-        sed -i '/^captive_portal:/d' generated_yamls/EHLPClock-HA-base.yaml
-        sed -i '/^wifi:/i\improv_serial:\n' generated_yamls/EHLPClock-HA-base.yaml
         
         # Remove secret dependencies
         for base_file in generated_yamls/EHLPClock-base.yaml generated_yamls/EHLPClock-HA-base.yaml; do
@@ -217,7 +211,6 @@ jobs:
             # List what's actually there for debugging
             find . -name "firmware.bin" -type f 2>/dev/null || echo "No firmware.bin files found anywhere"
           fi
-          break  # TESTING: Remove this line to build all variants
         done
         
         echo "📦 Generated firmware files:"
