@@ -48,6 +48,11 @@ jobs:
           cp README.md docs/index.md
           cp -r images docs/
           
+      - name: Convert relative YAML links to GitHub URLs
+        run: |
+          # Convert all relative .yaml links to absolute GitHub URLs (skip already absolute links with :)
+          sed -i 's|](\([^:)]*\.yaml\))|](https://github.com/trip5/EspHome-Led-PixelClock/blob/main/\1)|g' docs/index.md
+          
       - name: Build documentation
         run: mkdocs build
       
