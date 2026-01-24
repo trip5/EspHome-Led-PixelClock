@@ -174,7 +174,7 @@ jobs:
           echo "📝 Creating firmware manifests..."
           rm -rf docs/manifests
           mkdir -p docs/manifests
-          for bin_file in firmware/*.bin; do
+          for bin_file in $(ls -1 firmware/*.bin); do
             if [ -f "$bin_file" ]; then
               filename=$(basename "$bin_file")
               if [[ "$filename" == *"-HA.bin" ]]; then
@@ -212,7 +212,7 @@ jobs:
           echo "  \"build_date\": \"${BUILD_DATE}\"," >> docs/firmware-info.json
           echo '  "variants": [' >> docs/firmware-info.json
           FIRST=true
-          for bin_file in firmware/*.bin; do
+          for bin_file in $(ls -1 firmware/*.bin); do
             if [ -f "$bin_file" ]; then
               filename=$(basename "$bin_file")
               if [[ "$filename" == *"-HA.bin" ]]; then
