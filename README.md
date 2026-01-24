@@ -325,7 +325,7 @@ I've found anything below 8kB available to the heap can cause constant crashes.
 
 | Date       | Release Notes    |
 | ---------- | ---------------- |
-| 2026.01.23 | *not new code: Github page added with mkdocs and web flashing tool* |
+| 2026.01.24 | Minor fixes, Github page added with mkdocs and web flashing tool |
 | 2026.01.22 | Added POSIX to non-HA version and overrides to HA version, removed device's friendly name from entities, mdi icons & improv serial added, various fixes |
 | 2025.05.26 | Minor fixes, language filters updated |
 | 2024.12.09 | Recoded to remove many global variables, relying on numbers and switches where possible, hard-coded variables removed |

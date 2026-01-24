@@ -4,7 +4,7 @@ substitutions:
   friendly_name: "Led-PixelClock-HA"
   comment: "EHLPClock-HA from Trip5"
   project_name: "Trip5.EspHomeLedPixelClock-HA"
-  project_version: "2026.01.22"
+  project_version: "2026.01.24"
   waiting: " . EHLPClock-HA . ." # shows when waiting for time
 
   # Time zone must be POSIX format: (ie "KST-9" & "PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00" & "AST4ADT,M3.2.0,M11.1.0")

@@ -4,7 +4,7 @@ substitutions:
   friendly_name: "Led-PixelClock"
   comment: "EHLPClock from Trip5"
   project_name: "Trip5.EspHomeLedPixelClock"
-  project_version: "2026.01.22"
+  project_version: "2026.01.24"
   waiting: " . EHLPClock . ." # shows when waiting for time
 
   # Time zone can be Olsen type ("Asia/Seoul") # Check https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
@@ -67,10 +67,11 @@ wifi:
   on_connect:
     - logger.log: "Wifi connected"
     - light.turn_off: led1
+    - lambda: |-
+        id(wifi_ip).publish_state(id(wifi_ip).state);
+        id(wifi_stop_seek_time_count) = 0;
     - delay: 2s
     - button.press: display_ip
-    - lambda: |-
-        id(wifi_stop_seek_time_count) = 0;
     - script.execute: sync_the_time
   on_disconnect:
     - if:
