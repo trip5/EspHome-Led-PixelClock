@@ -172,6 +172,7 @@ jobs:
       - name: Create firmware manifests
         run: |
           echo "📝 Creating firmware manifests..."
+          rm -rf docs/manifests
           mkdir -p docs/manifests
           for bin_file in firmware/*.bin; do
             if [ -f "$bin_file" ]; then
