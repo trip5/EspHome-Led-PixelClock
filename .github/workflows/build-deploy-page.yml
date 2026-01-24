@@ -42,7 +42,10 @@ jobs:
       - name: Download latest release firmware (.bin files)
         run: |
           mkdir -p docs/firmware
-          gh release download --repo trip5/EspHome-Led-PixelClock --pattern '*.bin' --dir docs/firmware
+          if ! gh release download --repo trip5/EspHome-Led-PixelClock --pattern '*.bin' --dir docs/firmware; then
+            echo "::error ::No release found. There must be a release."
+            exit 1
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
