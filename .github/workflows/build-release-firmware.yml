@@ -128,6 +128,11 @@ jobs:
           for yaml_file in generated_yamls/*.yaml; do
             filename=$(basename "$yaml_file" .yaml)
             echo "🔨 Building ${filename}..."
+            
+            # Clean build directory to prevent mix-ups
+            rm -rf generated_yamls/.esphome/build/*
+            
+            # Compile the firmware
             esphome compile "$yaml_file"
             device_name=$(find generated_yamls/.esphome/build/ -maxdepth 1 -type d ! -name "build" -printf "%f\n" 2>/dev/null | head -1)
             if [ -z "$device_name" ]; then
