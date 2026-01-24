@@ -36,6 +36,15 @@
             In {{ states('sensor.inside_temperature') | float | round(1) }}°C
           {%- endif %}
         2: >
-          Out {{ hourly["weather.openweathermap_hourly"].forecast[0].temperature | round(0) | default('NA') }}°C
+          {%- if hourly["weather.openweathermap"].forecast[0].temperature not in ['unavailable', 'unknown'] -%}
+            {%- set temp = hourly["weather.openweathermap"].forecast[0].temperature | round(0) | default('NA') %}
+          {%- else %}
+            {%- set temp = "NA" %}
+          {%- endif %}
+          {%- if temp | string | length > 2 %}
+            Out{{ temp }}°C
+          {% else %}
+            Out {{ temp }}°C
+          {%- endif %}
 
 # Note that for 1: Inside temperature, it checks to see if it is available, otherwise it is blank - and the clock will skip over blanks!
