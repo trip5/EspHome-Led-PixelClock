@@ -67,15 +67,8 @@ wifi:
   on_connect:
     - logger.log: "Wifi connected"
     - light.turn_off: led1
-    - lambda: |-
-        id(wifi_stop_seek_time_count) = 0;
+    - lambda: 'id(wifi_stop_seek_time_count) = 0;'
     - delay: 2s
-    - if:
-        condition:
-          lambda: 'return id(wifi_ip).state == "192.168.4.1";'
-        then:
-          - lambda: 'id(wifi_ip).publish_state(id(wifi_ip).state);'
-          - delay: 8s
     - if:
         condition:
           lambda: 'return id(wifi_ip).state != "192.168.4.1";'
