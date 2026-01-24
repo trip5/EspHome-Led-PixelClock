@@ -8,7 +8,7 @@
       "chipFamily": "ESP8266",
       "parts": [
         {
-          "path": "EHLPClock-French-HA.bin",
+          "path": "../EHLPClock-French-HA.bin",
           "offset": 0
         }
       ]

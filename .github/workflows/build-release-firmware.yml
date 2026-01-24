@@ -194,7 +194,7 @@ jobs:
               echo '      "chipFamily": "ESP8266",' >> "$manifest_file"
               echo '      "parts": [' >> "$manifest_file"
               echo '        {' >> "$manifest_file"
-              echo "          \"path\": \"firmware/${filename}\"," >> "$manifest_file"
+              echo "          \"path\": \"../firmware/${filename}\"," >> "$manifest_file"
               echo '          "offset": 0' >> "$manifest_file"
               echo '        }' >> "$manifest_file"
               echo '      ]' >> "$manifest_file"

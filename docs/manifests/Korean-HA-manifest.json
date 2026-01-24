@@ -8,7 +8,7 @@
       "chipFamily": "ESP8266",
       "parts": [
         {
-          "path": "EHLPClock-Korean-HA.bin",
+          "path": "../EHLPClock-Korean-HA.bin",
           "offset": 0
         }
       ]
