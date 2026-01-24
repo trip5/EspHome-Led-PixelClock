@@ -68,9 +68,13 @@ wifi:
     - logger.log: "Wifi connected"
     - light.turn_off: led1
     - lambda: |-
-        id(wifi_ip).publish_state(id(wifi_ip).state);
         id(wifi_stop_seek_time_count) = 0;
     - delay: 2s
+    - if:
+        condition:
+          lambda: 'return id(wifi_ip).state == "192.168.4.1";'
+        then:
+          - delay: 5s
     - button.press: display_ip
     - script.execute: sync_the_time
   on_disconnect:
