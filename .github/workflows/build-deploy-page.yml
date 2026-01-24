@@ -1,6 +1,11 @@
+
 name: Build and Deploy GitHub Page
 
 on:
+  workflow_run:
+    workflows: ["Build and Release Firmware"]
+    types:
+      - completed
   push:
     branches: [ '**' ]
   workflow_dispatch:
@@ -35,12 +40,11 @@ jobs:
           sed -i 's|](\([^:)]*\.yaml\))|](https://github.com/trip5/EspHome-Led-PixelClock/blob/main/\1)|g' docs/index.md
 
       - name: Download latest release firmware (.bin files)
-        uses: robinraju/release-downloader@v1.8
-        with:
-          repository: trip5/EspHome-Led-PixelClock
-          latest: true
-          fileName: '*.bin'
-          out-file-path: docs/firmware
+        run: |
+          mkdir -p docs/firmware
+          gh release download --repo trip5/EspHome-Led-PixelClock --pattern '*.bin' --dir docs/firmware
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build documentation
         run: mkdocs build

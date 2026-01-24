@@ -280,10 +280,3 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Trigger build-deploy-page workflow
-        uses: peter-evans/workflow-dispatch@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          repository: trip5/EspHome-Led-PixelClock
-          workflow: build-deploy-page.yml
