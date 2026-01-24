@@ -146,7 +146,7 @@ It is possible to set an offset like 0.01 (which would be 36 seconds).  Be caref
 ### Time Zone POSIX
 
 Thanks to [andrewjswan](https://github.com/andrewjswan) for the idea to make the time zone editable directly in the WebUI.
-It must be in POSIX format (see notes below).  Don't forget to hit enter to make it stick.
+It must be in POSIX format (see [notes](#posix-time-strings) below).  Don't forget to hit enter to make it stick.
 
 ### Wifi Stop Seek
 
@@ -325,6 +325,7 @@ I've found anything below 8kB available to the heap can cause constant crashes.
 
 | Date       | Release Notes    |
 | ---------- | ---------------- |
+| 2026.01.23 | *not new code: Github page added with mkdocs and web flashing tool* |
 | 2026.01.22 | Added POSIX to non-HA version and overrides to HA version, removed device's friendly name from entities, mdi icons & improv serial added, various fixes |
 | 2025.05.26 | Minor fixes, language filters updated |
 | 2024.12.09 | Recoded to remove many global variables, relying on numbers and switches where possible, hard-coded variables removed |
