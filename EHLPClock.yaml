@@ -74,8 +74,13 @@ wifi:
         condition:
           lambda: 'return id(wifi_ip).state == "192.168.4.1";'
         then:
-          - delay: 5s
-    - button.press: display_ip
+          - lambda: 'id(wifi_ip).publish_state(id(wifi_ip).state);'
+          - delay: 8s
+    - if:
+        condition:
+          lambda: 'return id(wifi_ip).state != "192.168.4.1";'
+        then:
+          - button.press: display_ip
     - script.execute: sync_the_time
   on_disconnect:
     - if:
