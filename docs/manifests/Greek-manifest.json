@@ -1,6 +1,6 @@
 {
   "name": "EspHome-Led-PixelClock",
-  "version": "2026.01.22",
+  "version": "2026.01.24",
   "home_assistant_domain": "esphome",
   "funding_url": "https://github.com/sponsors/trip5",
   "builds": [
