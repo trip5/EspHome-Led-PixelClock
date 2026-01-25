@@ -57,20 +57,21 @@ jobs:
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
           echo "Final version: ${VERSION}"
 
-      - name: Preparing base files and Sanitizing Secrets
+      - name: Preparing base files, sanitizing Secrets, changing default time zone to GMT0
         run: |
           mkdir -p generated_yamls
           mkdir -p generated_yamls/base
           echo "📋 Copying master files..."
           cp EHLPClock.yaml generated_yamls/base/EHLPClock-base.yaml
           cp EHLPClock-HA.yaml generated_yamls/base/EHLPClock-HA-base.yaml
-          echo "🔧 Removing: ssid name, ssid password, ap password, ota password, encryption key..."
+          echo "🔧 Removing: ssid name, ssid password, ap password, ota password, encryption key, changing time zone to GMT0..."
           for base_file in generated_yamls/base/EHLPClock-base.yaml generated_yamls/base/EHLPClock-HA-base.yaml; do
             sed -i '/- ssid: !secret wifi_ssid/d' "$base_file"
             sed -i '/password: !secret wifi_password/d' "$base_file"
             sed -i '/password: !secret ap_password/d' "$base_file"
             sed -i '/password: !secret ota_password/d' "$base_file"
             sed -i '/key: !secret encryption_key/d' "$base_file"
+            sed -i '0,/time_zone: "[^"]*"/s//time_zone: "GMT0"/' "$base_file"
           done
 
       - name: Generate language variants
