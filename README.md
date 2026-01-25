@@ -16,22 +16,6 @@ Due to memory constraints on the ESP8266 these clocks use, I've decided to split
 
 ---
 
-<!--
-## New to ESPHome?
-
-Try following this step-by-step guide to compiling a YAML:
-[Beginner's Guide to Adding Devices](https://deploy-preview-4411--esphome.netlify.app/guides/beginners_guide_adding_devices)
-
-This guide is proposed for the ESPHome documentation and if you find it helpful, it would be great if you could leave a comment in the
-[Pull Request](https://github.com/esphome/esphome-docs/pull/4411) to get them added to the ESPHome Docs officially.
--->
-
-### New to Flashing a Device?
-
-You can read this: [Physically Connecting to your Device](https://esphome.io/guides/physical_device_connection) but with this device, you can use it's inbuilt USB port.
-
----
-
 ## LED Pixel Clock
 
 ### LED Matrix Clock
@@ -57,6 +41,24 @@ You can use ESPHome to make it completely custom or you can use my [Web Tool](ht
 #### LED Matrix Clock
 
 Flashing is dead-simple. Hold the 'Download' button while powering-on the clock, or press the reset button while holding 'Download' button.
+
+<!--
+
+---
+
+## New to ESPHome?
+
+Try following this step-by-step guide to compiling a YAML:
+[Beginner's Guide to Adding Devices](https://deploy-preview-4411--esphome.netlify.app/guides/beginners_guide_adding_devices)
+
+This guide is proposed for the ESPHome documentation and if you find it helpful, it would be great if you could leave a comment in the
+[Pull Request](https://github.com/esphome/esphome-docs/pull/4411) to get them added to the ESPHome Docs officially.
+
+-->
+
+### New to Flashing a Device?
+
+You can read this: [Physically Connecting to your Device](https://esphome.io/guides/physical_device_connection) but with this device, you can use it's inbuilt USB port.
 
 ---
 
