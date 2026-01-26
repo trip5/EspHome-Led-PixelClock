@@ -293,7 +293,7 @@ Remember that `GPIO1` must not be pulled low at boot so don't try to use it for 
 That's actually the real reason the box has a switch - it's actually a way to cutoff GND.
 
 In the box, `GPIO4` is wired to the small button, `GPIO3` is wired to the arcade button switch, and `GPIO12` is wired to the LED of the switch.
-I used a broken USB cable (which has 5 wires internally). The XH2.54 connectors (super-glued to the board itself) is a perfect fit under the acrylic shell.
+I used a broken USB cable (which has 4 wires internally). The XH2.54 connectors (super-glued to the board itself) is a perfect fit under the acrylic shell.
 
 The file [`EHLPClock-Plus.yaml`](EHLPClock-Plus.yaml) contains my personal additions to make this box function.
 
