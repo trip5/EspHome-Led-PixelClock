@@ -2,7 +2,7 @@
 
 # EspHome-Led-PixelClock
 
-***This documentation is the same on the [Github Page](https://trip5.github.io/EspHome-Led-PixelClock/), which may be easier to read than the [Github Repository](https://github.com/trip5/EspHome-Led-PixelClock).***
+***This documentation is the same on the [Github Page](https://trip5.github.io/EspHome-Led-PixelClock/), which may be easier to read.***
 
 ## Introduction
 
