@@ -1,5 +1,5 @@
 site_name: EspHome-Led-PixelClock
-site_description: ESPHome firmware for LED pixel clock with multi-language support
+site_description: EspHome-Led-Clock (for MAX7219 Digit Display Clocks)
 site_url: https://trip5.github.io/EspHome-Led-PixelClock/
 repo_url: https://github.com/trip5/EspHome-Led-PixelClock
 repo_name: trip5/EspHome-Led-PixelClock
