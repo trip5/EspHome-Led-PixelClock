@@ -77,7 +77,7 @@ There does appear to be some errors with "Component preferences took a long time
 
 Both versions of the YAML files will connect to the Home Assistant API if available.  Both can be controlled via device integration in HA.
 
-The Non-HA version will function completely without Home Assistant and can still be controlled by accessing the WebUI via its IP or mDNS address.
+The Non-HA version will function completely without Home Assistant and can still be controlled by accessing the WebUI via its IP or mDNS address, easily found with [eh Device Scanner](https://github.com/trip5/eh-Device-Scanner).
 
 ### Button Functions
 
@@ -327,6 +327,7 @@ I've found anything below 8kB available to the heap can cause constant crashes.
 
 | Date       | Release Notes    |
 | ---------- | ---------------- |
+| 2026.03.24 | Added ehDP to non-HA versions. Get [eh Device Scanner](https://github.com/trip5/eh-Device-Scanner) to use it. |
 | 2026.01.24 | Minor fixes, Github page added with mkdocs and web flashing tool |
 | 2026.01.22 | Added POSIX to non-HA version and overrides to HA version, removed device's friendly name from entities, mdi icons & improv serial added, various fixes |
 | 2025.05.26 | Minor fixes, language filters updated |

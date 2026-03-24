@@ -4,7 +4,7 @@ substitutions:
   friendly_name: "Led-PixelClock"
   comment: "EHLPClock from Trip5"
   project_name: "Trip5.EspHomeLedPixelClock"
-  project_version: "2026.01.24"
+  project_version: "2026.03.24"
   waiting: " . EHLPClock . ." # shows when waiting for time
 
   # Time zone can be Olsen type ("Asia/Seoul") # Check https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
@@ -102,6 +102,19 @@ font:
     glyphs: |-
       %0123456789 EHLPClock.DatenfWiONI:SpTAr
     # Above should cover the system messages: "EHLPClock . / Wifi Off / No Wifi / IP: / Date on / Date off / StopSeek / Seek... / OTA % / Done / Error"
+
+external_components:
+# Use Trip5's ehDP (eh Discovery Protocol)
+  - source:
+      type: git
+      url: https://github.com/trip5/ehDP
+      ref: main
+    refresh: 60s
+    components: [ ehdp ]
+
+ehdp:
+  material_symbol: "0xe8b5" # Schedule (clock face)
+  id: my_ehdp
 
 time:
   - platform: sntp # use SNTP as a time source / do not use Home Assistant!
@@ -876,6 +889,18 @@ switch:
             ESP_LOGI("info", "Alt Time Zone Off");
     entity_category: config
     icon: mdi:airplane-clock
+  - platform: template
+    name: "ehDP Discovery"
+    id: ehdp_discovery
+    restore_mode: RESTORE_DEFAULT_ON
+    optimistic: true
+    lambda: return id(my_ehdp).is_enabled();
+    turn_on_action:
+      - lambda: id(my_ehdp).enable();
+    turn_off_action:
+      - lambda: id(my_ehdp).disable();
+    entity_category: config
+    icon: mdi:home-variant
 
 number:
   - platform: template
