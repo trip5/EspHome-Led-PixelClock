@@ -1,3 +1,8 @@
+substitutions:
+
+  time_zone: "CET-1CEST,M3.5.0,M10.5.0/3"
+  alt_time_zone: "CET-1CEST,M3.5.0,M10.5.0/3"
+
 font:
 
   - file: fonts/MatrixChunky8X.bdf
@@ -18,12 +23,7 @@ text_sensor:
       - lambda: |-
           // Use the format "!%Hh%M" (!03h25) and run filters on it to get 3h25
           if (id(hour12_mode).state == 1) {
-            int offset = 0;
-            // delete next 3 lines if using the HA version...
-            if (id(tzoffset_on).state != 0) {
-              offset = (int)(60 * 60 * (id(tzoffset).state));
-            }
-            std::time_t tz1time = (id(my_time).now().timestamp + offset);
+            std::time_t tz1time = (id(my_time).now().timestamp);
             std::tm *tz1time_astm = localtime(&tz1time);
             char display_tmdt[20];
             strftime(display_tmdt, 20, "!%Hh%M", tz1time_astm);
@@ -47,12 +47,7 @@ text_sensor:
       - lambda: |-
           // Use the format "%d %b" (23 May) and run filters on it to get 23 mai
           if (id(hour12_mode).state == 1) {
-            int offset = 0;
-            // delete next 3 lines if using the HA version...
-            if (id(tzoffset_on).state != 0) {
-              offset = (int)(60 * 60 * (id(tzoffset).state));
-            }
-            std::time_t tz1time = (id(my_time).now().timestamp + offset);
+            std::time_t tz1time = (id(my_time).now().timestamp);
             std::tm *tz1time_astm = localtime(&tz1time);
             char display_tmdt[20];
             strftime(display_tmdt, 20, "%d %b", tz1time_astm);
@@ -85,12 +80,7 @@ text_sensor:
     filters:
       - lambda: |-
           // Use the format "%a" (Fri) and run filters on it to get vendredi
-          int offset = 0;
-          // delete next 3 lines if using the HA version...
-          if (id(tzoffset_on).state != 0) {
-            offset = (int)(60 * 60 * (id(tzoffset).state));
-          }
-          std::time_t tz1time = (id(my_time).now().timestamp + offset);
+          std::time_t tz1time = (id(my_time).now().timestamp);
           std::tm *tz1time_astm = localtime(&tz1time);
           char display_tmdt[20];
           strftime(display_tmdt, 20, "%Y %a", tz1time_astm);

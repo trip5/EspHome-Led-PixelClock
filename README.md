@@ -90,7 +90,7 @@ There's only one useable button on this clock but thanks to multi-click, we can 
 | -------------------- | ------------------------------- | ------------------|
 | Short-click          | Toggle date display mode on/off | Same              |
 | Double-click         | Toggle 12/24-hour mode on/off   | Same              |
-| Short-click, long-press | Toggle Time Zone Offset on/off | Toggle Alt Time Zone |
+| Short-click, long-press | Toggle Alt Time Zone on/off  | Same              |
 | Long-press 2 seconds  | Show the clock's IP address (or other wifi status) | Toggle Time/Date Text Replacement |
 | Long-press 5 seconds | Toggle the Wifi Stop Seek on/off (see below) | Toggle Auto Replacement = Alt. Time |
 
@@ -140,18 +140,25 @@ The file [`EHLPClock.yaml`](EHLPClock.yaml) contains functions useful for using 
 It includes all of the functions above as well as these below.  This version has a WebUI which can be accessed via it's IP after connecting the clock to Wifi.
 So if you need a travel clock, this may be the ideal one for you.  It can still be controlled by Home Assistant as well but is not dependent on it to function.
 
-### Time Zone Offset
-
-It's up to you how to handle time offset.
-You can set an offset with a number that is a positive or negative value with decimal places (ie. 2, -2, 12.5).
-
-I have allowed steps of 0.25 (equal to 15 minutes) but ESPHome does not enforce those steps.
-It is possible to set an offset like 0.01 (which would be 36 seconds).  Be careful.
-
 ### Time Zone POSIX
 
-Thanks to [andrewjswan](https://github.com/andrewjswan) for the idea to make the time zone editable directly in the WebUI.
-It must be in POSIX format (see [notes](#posix-time-strings) below).  Don't forget to hit enter to make it stick.
+Thanks to [andrewjswan](https://github.com/andrewjswan) for the idea to make time zones editable directly in the WebUI.
+They must be in POSIX format (see [notes](#posix-time-strings) below).  Don't forget to hit enter to make it stick.
+
+### Alternate Time Zone
+
+This option is to allow displaying a Time Zone other than your "home" time zone.  It can be activated permanently.
+
+### Weather
+
+There are a few options to display current weather conditions: Text, Temperature (°C/°F), Feels Like temperature (°C/°F), Humidity (%).
+Selectors in the WebUI join them together to display at specified intervals (for example, every 5th rotation of time and date).
+Text that is too long to display in the selected time will finish displaying.
+
+You will need to enter your GPS location using [Latitude and Longitude](https://www.gps-coordinates.net/) for it function correctly.
+It uses my [ESPHome-Open-Meteo component](https://github.com/trip5/ESPHome-Open-Meteo).
+
+It will not function without Internet connectivity (of course).
 
 ### Wifi Stop Seek
 
@@ -209,7 +216,7 @@ If connected to Wifi or Stop Seek has activated, the LED will turn off completel
 
 ESPHome devices usually rely on the Internet to be available to access a Javascript file that formats the web UI.
 Specifically, the device will look for https://oi.esphome.io/v2/www.js but this file can be made available on-device with this included in the `webserver:` section.
-This is added to the non-HA version by default.
+This can be added to the non-HA version but I recommend against it (it eats up valuable resources).
 
 ```yaml
   local: true
@@ -228,11 +235,7 @@ You could consider hosting the file on another machine in-house, too by using so
 ## Home Assistant Version
 
 The file [`EHLPClock-HA.yaml`](EHLPClock-HA.yaml) contains functions useful for using the clock with Home Assistant.
-It does not include the WebUI, Time Zone Offset, Time Zone POSIX, or Wifi Stop Seek but it does includes all of the functions below.
-
-### Alternate Time Zone
-
-This option is to allow displaying a Time Zone other than your "home" time zone.  It can be activated permanently.
+It does not include the WebUI, editable Time Zones, or Wifi Stop Seek but it does includes all of the functions below.
 
 ### Override Time Zones
 
@@ -329,6 +332,7 @@ I've found anything below 8kB available to the heap can cause constant crashes.
 
 | Date       | Release Notes    |
 | ---------- | ---------------- |
+| 2026.04.08 | Non-HA versions: ehDP fixed, both time zones changeable in UI, Auto Replacement = Alt. Time added, Weather Temperature options added, Time Zone Offset completely removed (which affects all files) |
 | 2026.03.24 | Added ehDP to non-HA versions. Get [eh Device Scanner](https://github.com/trip5/eh-Device-Scanner) to use it. |
 | 2026.01.24 | Minor fixes, Github page added with mkdocs and web flashing tool |
 | 2026.01.22 | Added POSIX to non-HA version and overrides to HA version, removed device's friendly name from entities, mdi icons & improv serial added, various fixes |

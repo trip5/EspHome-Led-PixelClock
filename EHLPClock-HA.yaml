@@ -4,7 +4,7 @@ substitutions:
   friendly_name: "Led-PixelClock-HA"
   comment: "EHLPClock-HA from Trip5"
   project_name: "Trip5.EspHomeLedPixelClock-HA"
-  project_version: "2026.01.24"
+  project_version: "2026.04.08"
   waiting: " . EHLPClock-HA . ." # shows when waiting for time
 
   # Time zone must be POSIX format: (ie "KST-9" & "PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00" & "AST4ADT,M3.2.0,M11.1.0")
@@ -98,7 +98,7 @@ font:
   - file: fonts/MatrixLight8X.bdf
     id: message_font
     glyphs: |-
-      ! "#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz°₩₿
+      ! "#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz°
     # %0123456789 EHLPClock-A.DatenfOTr
     # Above should cover the system messages: "EHLPClock-HA . / Date on / Date off / OTA % / Done / Error" if you don't plan on using on using the HA service calls or sensors
 
@@ -202,21 +202,21 @@ logger:
   level: NONE
 # Logging is disabled to save memory but you can easily enable logging (and stop the various sensors/switches from spamming the log) by deleting the above line and uncommenting the lines below
 # Note that increasing the level uses up memory (which this device has very little available) and may cause errors and/or crashing - please note it's also disabled in the web_server section
-#  level: INFO
+#  level: DEBUG
 #  logs:
 #    sensor: ERROR
-#    text_sensor: NONE
+#    text_sensor: ERROR
 #    switch: NONE
 #    light: NONE
-#    number: NONE
+#    number: ERROR
 
 # Web Server is disabled due to memory constraints.  Enable at your own risk (consider removing captive_portal, reducing fonts to 1 to save memory)
 #web_server:
 #  port: 80
 #  # ota: false # true by default
 #  include_internal: false # true will expose more than needed to the Web UI
-#  version: 2 # version 3 is much larger but possible if local is false
-#  local: true # will download www.js and serve it directly from the clock
+#  version: 2 # version 3 is more efficient but cuts off many field names
+#  # local: true # will download www.js and serve it directly from the clock (may break the Web UI)
 #  log: false # disabling in the WebUI to save memory
 
 ota:
@@ -281,8 +281,7 @@ text_sensor:
       - lambda: |-
           // Use the format "%p%I:%M" (PM 1:25) and run filters on it to get 오후1:25
           if (id(hour12_mode).state == 1) {
-            int offset = 0;
-            std::time_t tz1time = (id(my_time).now().timestamp + offset);
+            std::time_t tz1time = (id(my_time).now().timestamp);
             std::tm *tz1time_astm = localtime(&tz1time);
             char display_tmdt[20];
             strftime(display_tmdt, 20, "%p%I:%M", tz1time_astm);
@@ -306,8 +305,7 @@ text_sensor:
     filters:
       - lambda: |-
           // Use the format "%b %d" (May 23) and run filters on it to get 05월 23일
-          int offset = 0;
-          std::time_t tz1time = (id(my_time).now().timestamp + offset);
+          std::time_t tz1time = (id(my_time).now().timestamp);
           std::tm *tz1time_astm = localtime(&tz1time);
           char display_tmdt[20];
           strftime(display_tmdt, 20, "%b %d", tz1time_astm);
@@ -337,8 +335,7 @@ text_sensor:
     filters:
       - lambda: |-
           // Use the format "%a" (Fri) and run filters on it to get 금요일
-          int offset = 0;
-          std::time_t tz1time = (id(my_time).now().timestamp + offset);
+          std::time_t tz1time = (id(my_time).now().timestamp);
           std::tm *tz1time_astm = localtime(&tz1time);
           char display_tmdt[20];
           strftime(display_tmdt, 20, "%a", tz1time_astm);
@@ -534,7 +531,13 @@ display:
           id(message_display_time_count) += 1;
           id(message_alive_time_count) += 1;
           std::string message_text = id(message);
-          it.print(0, 0, id(message_font), message_text.c_str());
+          int x1, y1, w, h;
+          it.get_text_bounds(0, 0, message_text.c_str(), id(message_font), TextAlign::TOP_LEFT, &x1, &y1, &w, &h);
+          if (w <= 32) {
+            it.printf(16, 4, id(message_font), TextAlign::CENTER, "%s", message_text.c_str());
+          } else {
+            it.print(0, 0, id(message_font), message_text.c_str());
+          }
           if (id(message_display_time_count) >= id(message_display_time)) {
             id(message_display_time_count) = 0;
             id(message_clock_time_count) = 0;
@@ -699,7 +702,6 @@ display:
                 id(ha_sensor_data_now) = 1;
               }
               // check if Replace Interval is active, count or reset, when date display is finished - or after the interval, depending
-              // ...and trip the boolean to display HA sensors
               if (id(replace_interval).state > 0) {
                 id(replace_interval_count) += 1;
                 if (id(replace_interval_count) >= id(replace_interval).state) {

@@ -1,3 +1,8 @@
+substitutions:
+
+  time_zone: "EET-2EEST,M3.5.0/3,M10.5.0/4"
+  alt_time_zone: "EET-2EEST,M3.5.0/3,M10.5.0/4"
+
 font:
 
   - file: fonts/MatrixChunky8X.bdf
@@ -21,12 +26,7 @@ text_sensor:
       - lambda: |-
           // Use the format "!%H:%M%p" (!01:25PM) and run filters on it to get 1:25πμ
           if (id(hour12_mode).state == 1) {
-            int offset = 0;
-            // delete next 3 lines if using the HA version...
-            if (id(tzoffset_on).state != 0) {
-              offset = (int)(60 * 60 * (id(tzoffset).state));
-            }
-            std::time_t tz1time = (id(my_time).now().timestamp + offset);
+            std::time_t tz1time = (id(my_time).now().timestamp);
             std::tm *tz1time_astm = localtime(&tz1time);
             char display_tmdt[20];
             strftime(display_tmdt, 20, "%p%l:%M", tz1time_astm);
@@ -51,12 +51,7 @@ text_sensor:
     filters:
       - lambda: |-
           // Use the format "%d %b" (23 May) and run filters on it to get 23 Μάι
-          int offset = 0;
-          // delete next 3 lines if using the HA version...
-          if (id(tzoffset_on).state != 0) {
-            offset = (int)(60 * 60 * (id(tzoffset).state));
-          }
-          std::time_t tz1time = (id(my_time).now().timestamp + offset);
+          std::time_t tz1time = (id(my_time).now().timestamp);
           std::tm *tz1time_astm = localtime(&tz1time);
           char display_tmdt[20];
           strftime(display_tmdt, 20, "%d %b", tz1time_astm);
@@ -86,12 +81,7 @@ text_sensor:
     filters:
       - lambda: |-
           // Use the format "%a" (Fri) and run filters on it to get Παρ
-          int offset = 0;
-          // delete next 3 lines if using the HA version...
-          if (id(tzoffset_on).state != 0) {
-            offset = (int)(60 * 60 * (id(tzoffset).state));
-          }
-          std::time_t tz1time = (id(my_time).now().timestamp + offset);
+          std::time_t tz1time = (id(my_time).now().timestamp);
           std::tm *tz1time_astm = localtime(&tz1time);
           char display_tmdt[20];
           strftime(display_tmdt, 20, "%a", tz1time_astm);

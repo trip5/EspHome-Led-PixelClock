@@ -4,15 +4,15 @@ substitutions:
   friendly_name: "Led-PixelClock"
   comment: "EHLPClock from Trip5"
   project_name: "Trip5.EspHomeLedPixelClock"
-  project_version: "2026.03.24"
+  project_version: "2026.04.08"
   waiting: " . EHLPClock . ." # shows when waiting for time
 
-  # Time zone can be Olsen type ("Asia/Seoul") # Check https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-  # or POSIX format: (ie "KST-9" & "PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00" & "AST4ADT,M3.2.0,M11.1.0")
-  # They can be viewed here: https://github.com/trip5/timezones.json/blob/master/timezones.md
+  # Time zone must be POSIX format: (ie "KST-9" & "PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00" & "AST4ADT,M3.2.0,M11.1.0")
+  # A full list can be viewed here: https://github.com/trip5/timezones.json/blob/master/timezones.md
   # If you need to make a custom POSIX format you can look here: https://developer.ibm.com/articles/au-aix-posix/)
   # or even better, use this POSIX Generator (courtesy of TopYuan): https://www.topyuan.top/posix
   time_zone: "AST4ADT,M3.2.0,M11.1.0"
+  alt_time_zone: "KST-9"
     
   # time and date formats: https://esphome.io/components/time/?highlight=strftime#strftime and https://strftime.org/
   # time_format: "%H:%M" (13:25) / "%H:%M:%S" (13:25:59) / "%I:%M%p" (01:25PM) / "%l:%M%p" (1:25PM)
@@ -48,6 +48,9 @@ esphome:
     - priority: 600
       then:
         - ds1307.read_time:
+    - priority: -100
+      then:
+        - lambda: 'id(ehdp_discovery).publish_state(id(my_ehdp).is_enabled());'
 
 esp8266:
   board: esp12e
@@ -75,6 +78,7 @@ wifi:
         then:
           - button.press: display_ip
     - script.execute: sync_the_time
+    - script.execute: force_weather_update
   on_disconnect:
     - if:
         condition:
@@ -100,11 +104,12 @@ font:
   - file: fonts/MatrixLight8X.bdf
     id: message_font
     glyphs: |-
-      %0123456789 EHLPClock.DatenfWiONI:SpTAr
+      ! "#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz°
+    # %0123456789 EHLPClock.DatenfWiONI:SpTAr
     # Above should cover the system messages: "EHLPClock . / Wifi Off / No Wifi / IP: / Date on / Date off / StopSeek / Seek... / OTA % / Done / Error"
 
 external_components:
-# Use Trip5's ehDP (eh Discovery Protocol)
+# Use Trip5's ehDP (eh Discovery Protocol) ESPHome Component
   - source:
       type: git
       url: https://github.com/trip5/ehDP
@@ -112,9 +117,28 @@ external_components:
     refresh: 60s
     components: [ ehdp ]
 
+# Use Trip5's ESPHome-Open-Meteo Component
+  - source:
+      type: git
+      url: https://github.com/trip5/ESPHome-Open-Meteo
+      ref: main
+    refresh: 60s
+    components: [ open_meteo ]
+
 ehdp:
   material_symbol: "0xe8b5" # Schedule (clock face)
   id: my_ehdp
+  enable_disable: true
+
+http_request:
+  verify_ssl: false
+
+open_meteo:
+  id: weather
+  latitude: !lambda 'return id(latitude).state;'
+  longitude: !lambda 'return id(longitude).state;'
+  update_interval: 15min  # initial - override by weather_update_interval
+  use_https: false
 
 time:
   - platform: sntp # use SNTP as a time source / do not use Home Assistant!
@@ -141,9 +165,12 @@ script:
     then:
       - delay: 250ms # need states to stick before updating (helps prevent crashes, too)
       - lambda: |-
-          if (id(alt_time_zone_on).state && !id(alt_timezone).state.empty()) {
+          if (id(tz_alt_auto).state && !id(alt_timezone).state.empty()) {
             id(my_time)->set_timezone(id(alt_timezone).state.c_str());
             id(rtc_time)->set_timezone(id(alt_timezone).state.c_str());
+          } else if (!id(main_timezone).state.empty()) {
+            id(my_time)->set_timezone(id(main_timezone).state.c_str());
+            id(rtc_time)->set_timezone(id(main_timezone).state.c_str());
           } else {
             id(my_time)->set_timezone(("${time_zone}"));
             id(rtc_time)->set_timezone("$(time_zone}");
@@ -160,6 +187,73 @@ script:
       - lambda: |-
           id(display_off_time_count) = 0;
           id(display_off) = false;
+  - id: force_weather_update
+    mode: restart
+    then:
+      - delay: 10s
+      - component.update: weather
+  - id: build_weather_message
+    mode: restart
+    then:
+      - delay: 100ms
+      - lambda: |-
+          // Check if weather data is stale (> 1 hour old)
+          if (id(my_time).now().is_valid() && !std::isnan(id(weather_update_timestamp).state) &&
+              (id(my_time).now().timestamp - (time_t)id(weather_update_timestamp).state) > 3600) {
+            ESP_LOGI("info", "Weather data is stale, clearing");
+            id(weather_combined).publish_state("");
+            return;
+          }
+          std::string msg = "";
+          char tmpstring[32];
+          // 1. Weather Text
+          if (id(weather_1_text).state && !id(weather_text).state.empty()) {
+            msg += id(weather_text).state;
+            msg += " ";
+          }
+          // 2. Temperature (C or F)
+          if (!std::isnan(id(weather_temperature_c).state) && id(weather_2_temperature_c).state) {
+            snprintf(tmpstring, sizeof(tmpstring), "%.0f°C ", id(weather_temperature_c).state);
+            msg += tmpstring;
+          }
+          if (!std::isnan(id(weather_temperature_f).state) && id(weather_2_temperature_f).state) {
+            snprintf(tmpstring, sizeof(tmpstring), "%.0f°F ", id(weather_temperature_f).state);
+            msg += tmpstring;
+          }
+          // 3. Feels Like (C or F)
+          if (!std::isnan(id(weather_feelslike_c).state) && id(weather_3_apparent_temperature_c).state) {
+            snprintf(tmpstring, sizeof(tmpstring), "Feels Like %.0f°C ", id(weather_feelslike_c).state);
+            msg += tmpstring;
+          }
+          if (!std::isnan(id(weather_feelslike_f).state) && id(weather_3_apparent_temperature_f).state) {
+            snprintf(tmpstring, sizeof(tmpstring), "Feels Like %.0f°F ", id(weather_feelslike_f).state);
+            msg += tmpstring;
+          }
+          // 4. Humidity
+          if (id(weather_4_humidity).state && !std::isnan(id(weather_humidity).state)) {
+            snprintf(tmpstring, sizeof(tmpstring), "Humidity %.0f%% ", id(weather_humidity).state);
+            msg += tmpstring;
+          }
+          // Finish: Remove trailing space if present
+          if (!msg.empty() && msg.back() == ' ') msg.pop_back();
+          // Calculate actual time needed to display (estimated)
+          int x1, y1, w, h;
+          id(matrix)->get_text_bounds(0, 0, msg.c_str(), id(message_font), TextAlign::TOP_LEFT, &x1, &y1, &w, &h);
+          if (w > 32) {
+            int shifts = w - 32;
+            // 0.25 seconds per pixel shift, round up to next second, add 3s for the dots
+            uint8_t calc_time = (uint8_t)(shifts * 0.25 + 0.999);
+            if (calc_time >= (uint8_t)id(weather_display_time).state) {
+              id(weather_display_time_real) = calc_time + 3;
+            } else {
+              id(weather_display_time_real) = (uint8_t)id(weather_display_time).state;
+            }
+            msg = " . " + msg + " . . . . ";
+            id(weather_combined).publish_state(msg);
+          } else {
+            id(weather_combined).publish_state(msg);
+            id(weather_display_time_real) = id(weather_display_time).state;
+          }
 
 # Enable Home Assistant API
 api:
@@ -175,20 +269,20 @@ logger:
   level: NONE
 # Logging is disabled to save memory but you can easily enable logging (and stop the various sensors/switches from spamming the log) by deleting the above line and uncommenting the lines below
 # Note that increasing the level uses up memory (which this device has very little available) and may cause errors and/or crashing - please note it's also disabled in the web_server section
-#  level: INFO
+#  level: DEBUG
 #  logs:
 #    sensor: ERROR
-#    text_sensor: NONE
+#    text_sensor: ERROR
 #    switch: NONE
 #    light: NONE
-#    number: NONE
+#    number: ERROR
 
 web_server:
   port: 80
   # ota: false # true by default
   include_internal: false # true will expose more than needed to the Web UI
-  version: 2 # version 3 is much larger but possible if local is false
-  local: true # will download www.js and serve it directly from the clock
+  version: 2 # version 3 is more efficient but cuts off many field names
+  # local: true # will download www.js and serve it directly from the clock (may break the Web UI)
   log: false # disabling in the WebUI to save memory
 
 ota:
@@ -255,12 +349,7 @@ text_sensor:
       - lambda: |-
           // Use the format "%p%I:%M" (PM 1:25) and run filters on it to get 오후1:25
           if (id(hour12_mode).state == 1) {
-            int offset = 0;
-            // delete next 3 lines if using the HA version...
-            if (id(tzoffset_on).state != 0) {
-              offset = (int)(60 * 60 * (id(tzoffset).state));
-            }
-            std::time_t tz1time = (id(my_time).now().timestamp + offset);
+            std::time_t tz1time = (id(my_time).now().timestamp);
             std::tm *tz1time_astm = localtime(&tz1time);
             char display_tmdt[20];
             strftime(display_tmdt, 20, "%p%I:%M", tz1time_astm);
@@ -284,12 +373,7 @@ text_sensor:
     filters:
       - lambda: |-
           // Use the format "%b %d" (May 23) and run filters on it to get 05월 23일
-          int offset = 0;
-          // delete next 3 lines if using the HA version...
-          if (id(tzoffset_on).state != 0) {
-            offset = (int)(60 * 60 * (id(tzoffset).state));
-          }
-          std::time_t tz1time = (id(my_time).now().timestamp + offset);
+          std::time_t tz1time = (id(my_time).now().timestamp);
           std::tm *tz1time_astm = localtime(&tz1time);
           char display_tmdt[20];
           strftime(display_tmdt, 20, "%b %d", tz1time_astm);
@@ -319,12 +403,7 @@ text_sensor:
     filters:
       - lambda: |-
           // Use the format "%a" (Fri) and run filters on it to get 금요일
-          int offset = 0;
-          // delete next 3 lines if using the HA version...
-          if (id(tzoffset_on).state != 0) {
-            offset = (int)(60 * 60 * (id(tzoffset).state));
-          }
-          std::time_t tz1time = (id(my_time).now().timestamp + offset);
+          std::time_t tz1time = (id(my_time).now().timestamp);
           std::tm *tz1time_astm = localtime(&tz1time);
           char display_tmdt[20];
           strftime(display_tmdt, 20, "%a", tz1time_astm);
@@ -340,6 +419,27 @@ text_sensor:
         - "Thu -> 목"
         - "Fri -> 금"
         - "Sat -> 토"
+  - platform: open_meteo
+    weather_description:
+      id: weather_text
+      on_value:
+        - script.execute: build_weather_message
+    wind_direction_short:
+      id: weather_wind_direction
+  - platform: template
+    id: weather_combined
+    on_value:
+      lambda: |-
+        if (!id(weather_text).state.empty()) {
+          id(weather_shown).publish_state(x);
+        } else {
+          id(weather_shown).publish_state("Open-Meteo API Offline");
+        }
+  - platform: template
+    name: "Weather"
+    id: weather_shown
+    icon: mdi:weather-cloudy
+    entity_category: diagnostic
 
 sensor:
   - platform: wifi_signal
@@ -350,6 +450,20 @@ sensor:
     entity_category: "diagnostic"
     icon: mdi:wifi
     disabled_by_default: true
+  - platform: open_meteo
+    id: weather
+    temperature_c:
+      id: weather_temperature_c
+    temperature_f:
+      id: weather_temperature_f
+    apparent_temperature_c:
+      id: weather_feelslike_c
+    apparent_temperature_f:
+      id: weather_feelslike_f
+    humidity:
+      id: weather_humidity
+    update_timestamp:
+      id: weather_update_timestamp
 
 output:
   - platform: esp8266_pwm
@@ -417,7 +531,7 @@ binary_sensor:
               - script.execute: display_off_deactivate
             else:
               - switch.toggle: hour12_mode
-      #Click once, then Hold will toggle TZ Offset (or turn screen on again)
+      #Click once, then Hold will toggle Alternate Time (or turn screen on again)
       - timing:
           - ON for at most 1s
           - OFF for at most 0.5s
@@ -429,7 +543,7 @@ binary_sensor:
             then:
               - script.execute: display_off_deactivate
             else:
-              - switch.toggle: tzoffset_on
+              - switch.toggle: tz_alt
       #Hold 2s will show the IP (or other wifi status) (or turn screen on again)
       - timing:
           - ON for at least 2s
@@ -484,7 +598,13 @@ display:
           id(message_display_time_count) += 1;
           id(message_alive_time_count) += 1;
           std::string message_text = id(message);
-          it.print(0, 0, id(message_font), message_text.c_str());
+          int x1, y1, w, h;
+          it.get_text_bounds(0, 0, message_text.c_str(), id(message_font), TextAlign::TOP_LEFT, &x1, &y1, &w, &h);
+          if (w <= 32) {
+            it.printf(16, 4, id(message_font), TextAlign::CENTER, "%s", message_text.c_str());
+          } else {
+            it.print(0, 0, id(message_font), message_text.c_str());
+          }
           if (id(message_display_time_count) >= id(message_display_time)) {
             id(message_display_time_count) = 0;
             id(message_clock_time_count) = 0;
@@ -495,16 +615,12 @@ display:
             }
           }
         } else {
+          // The extra indent here makes comparing the core clock to the HA version easier
             if ((id(message_alive_time) != 0) && (id(message_clock_time) != 0)) {
               id(message_clock_time_count) += 1;
               id(message_alive_time_count) += 1;
             }
-            // apply offset if needed https://community.home-assistant.io/t/multiple-time-zones/435315/12
-            int offset = 0;
-            if (id(tzoffset_on).state != false) {
-              offset = (int)(60 * 60 * (id(tzoffset).state));
-            }
-            std::time_t tz1time = (id(my_time).now().timestamp + offset);
+            std::time_t tz1time = (id(my_time).now().timestamp);
             std::tm *tz1time_astm = localtime(&tz1time);
             char display_tmdt[20];
             // check if the date should be displayed
@@ -553,7 +669,28 @@ display:
                 id(replace_interval_count) += 1;
                 if (id(replace_interval_count) >= id(replace_interval).state) {
                   id(replace_interval_count) = 0;
+                  if (id(auto_replace_tz_alt).state == true) {
+                    if (id(replace_mode_auto).state == true) {
+                      id(tz_alt_auto).turn_off();
+                    } else {
+                      id(tz_alt_auto).turn_on();
+                    }
+                  }
                   id(replace_mode_auto).toggle();
+                }
+            }
+            // show the weather (if it's available)
+            if (!id(weather_combined).state.empty()) {
+              id(weather_interval_count) += 1;
+              ESP_LOGI("info", "Weather interval count: %d / %d", id(weather_interval_count), (int)id(weather_interval).state);
+              if (id(weather_interval_count) >= id(weather_interval).state) {
+                id(weather_interval_count) = 0;
+                // shortcut: use the 'message' which suspends other counting...
+                ESP_LOGI("info", "Showing Weather: %s", id(weather_combined).state.c_str());
+                id(message) = id(weather_combined).state.c_str();
+                id(message_alive_time) = id(weather_display_time_real);
+                id(message_display_time) = id(weather_display_time_real);
+                id(message_clock_time) = 0;
               }
             }
           }
@@ -693,8 +830,39 @@ globals:
     type: uint16_t
     restore_value: false
     initial_value: '0'
+# Weather Variable
+  - id: weather_interval_count
+    type: uint8_t
+    restore_value: false
+    initial_value: '0'
+  - id: weather_display_time_real
+    type: uint8_t
+    restore_value: false
+    initial_value: '0'
 
 text:
+  - platform: template
+    name: "Main Time Zone POSIX"
+    id: main_timezone
+    optimistic: true
+    min_length: 0
+    max_length: 35
+    mode: text
+    restore_value: true
+    initial_value: "${time_zone}"
+    on_value:
+      then:
+        - delay: 250ms
+        - lambda: |-
+            if (id(main_timezone).state == "") {
+              id(reset_main_timezone_text).press();
+            } else {
+              id(tz_alt).turn_off();
+            }
+        - script.execute: set_timezone
+    entity_category: config
+    icon: mdi:clock
+    disabled_by_default: true
   - platform: template
     name: "Alt Time Zone POSIX"
     id: alt_timezone
@@ -709,15 +877,12 @@ text:
         - delay: 250ms
         - lambda: |-
             if (id(alt_timezone).state == "") {
-              id(alt_timezone).state = "${time_zone}";
+              id(reset_alt_timezone_text).press();
             }
             if (id(alt_timezone).state == "${time_zone}") {
-              id(alt_time_zone_on).turn_off();
+              id(tz_alt).turn_off();
             } else {
-              if (id(tzoffset_on).state) {
-                id(tzoffset_on).turn_off();
-              }
-              id(alt_time_zone_on).turn_on();
+              id(tz_alt).turn_on();
             }
         - script.execute: set_timezone
     entity_category: config
@@ -752,13 +917,24 @@ button:
                 id(message_display_time) = 9;
                 id(message_clock_time) = 0;
   - platform: template
-    id: reset_timezone_text
-    name: "Alt Time Zone Reset to ${time_zone}"
+    id: reset_main_timezone_text
+    name: "Main Time Zone Reset to ${time_zone}"
+    on_press:
+      then:
+        - lambda: |-
+            auto call = id(main_timezone).make_call();
+            call.set_value("${time_zone}");
+            call.perform();
+    entity_category: config
+    icon: mdi:clock-alert
+  - platform: template
+    id: reset_alt_timezone_text
+    name: "Alt Time Zone Reset to ${alt_time_zone}"
     on_press:
       then:
         - lambda: |-
             auto call = id(alt_timezone).make_call();
-            call.set_value("${time_zone}");
+            call.set_value("${alt_time_zone}");
             call.perform();
     entity_category: config
     icon: mdi:clock-alert
@@ -820,19 +996,6 @@ switch:
         - lambda: |-
             ESP_LOGI("info", "Replace Mode Auto Off");
   - platform: template
-    name: "Time Zone Offset On"
-    id: tzoffset_on
-    restore_mode: RESTORE_DEFAULT_OFF
-    optimistic: true
-    turn_on_action:
-        - lambda: |-
-            ESP_LOGI("info", "TZ Offset On");
-    turn_off_action:
-        - lambda: |-
-            ESP_LOGI("info", "TZ Offset Off");
-    entity_category: config
-    icon: mdi:airplane-clock
-  - platform: template
     name: "Date Display Mode"
     id: date_display_mode
     restore_mode: RESTORE_DEFAULT_OFF
@@ -877,30 +1040,156 @@ switch:
     entity_category: config
     icon: mdi:wifi-off
   - platform: template
-    name: "Alt Time Zone On"
-    id: alt_time_zone_on
+    name: "Alternate Time"
+    id: tz_alt
     restore_mode: RESTORE_DEFAULT_OFF
     optimistic: true
     turn_on_action:
         - lambda: |-
             ESP_LOGI("info", "Alt Time Zone On");
+            id(auto_replace_tz_alt).turn_off();
+            id(tz_alt_auto).turn_on();
     turn_off_action:
         - lambda: |-
             ESP_LOGI("info", "Alt Time Zone Off");
+            id(tz_alt_auto).turn_off();
     entity_category: config
     icon: mdi:airplane-clock
   - platform: template
+    id: tz_alt_auto
+    restore_mode: DISABLED
+    optimistic: true
+    internal: true
+    turn_on_action:
+        - lambda: |-
+            ESP_LOGI("info", "Alt Time Zone Auto On");
+        - script.execute: set_timezone
+    turn_off_action:
+        - lambda: |-
+            ESP_LOGI("info", "Alt Time Zone Auto Off");
+        - script.execute: set_timezone
+  - platform: template
+    name: "Auto Replacement = Alt. Time"
+    id: auto_replace_tz_alt
+    restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: true
+    turn_on_action:
+        - lambda: |-
+            ESP_LOGI("info", "Auto Replacement = Alt. Time On");
+            if (id(replace_interval).state == 0) {
+              auto call = id(replace_interval).make_call();
+              call.set_value(1);
+              call.perform();
+            }
+            id(replace_mode).turn_off();
+            id(tz_alt).turn_off();
+    turn_off_action:
+        - lambda: |-
+            ESP_LOGI("info", "Auto Replacement Mode = Alt. Time Off");
+            id(tz_alt_auto).turn_off();
+    entity_category: config
+    icon: mdi:yin-yang
+  - platform: template
     name: "ehDP Discovery"
     id: ehdp_discovery
-    restore_mode: RESTORE_DEFAULT_ON
     optimistic: true
-    lambda: return id(my_ehdp).is_enabled();
     turn_on_action:
       - lambda: id(my_ehdp).enable();
     turn_off_action:
       - lambda: id(my_ehdp).disable();
     entity_category: config
     icon: mdi:home-variant
+# Weather Toggle Switches
+  - platform: template
+    name: "Weather 1 Text"
+    id: weather_1_text
+    restore_mode: RESTORE_DEFAULT_ON
+    optimistic: true
+    turn_on_action:
+        - lambda: 'ESP_LOGI("info", "Weather Text On");'
+        - script.execute: build_weather_message
+    turn_off_action:
+        - lambda: 'ESP_LOGI("info", "Weather Text Off");'
+        - script.execute: build_weather_message
+    entity_category: config
+    icon: mdi:weather-partly-snowy-rainy
+  - platform: template
+    name: "Weather 2 Temperature °C"
+    id: weather_2_temperature_c
+    restore_mode: RESTORE_DEFAULT_ON
+    optimistic: true
+    turn_on_action:
+        - lambda: |-
+            ESP_LOGI("info", "Weather Temperature °C On");
+            if (id(weather_2_temperature_f).state) id(weather_2_temperature_f).turn_off();
+        - script.execute: build_weather_message
+    turn_off_action:
+        - lambda: |-
+            if (!id(weather_2_temperature_f).state) ESP_LOGI("info", "Weather Temperature °C Off");
+        - script.execute: build_weather_message
+    entity_category: config
+    icon: mdi:temperature-celsius
+  - platform: template
+    name: "Weather 2 Temperature °F"
+    id: weather_2_temperature_f
+    restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: true
+    turn_on_action:
+        - lambda: |-
+            ESP_LOGI("info", "Weather Temperature °F On");
+            if (id(weather_2_temperature_c).state) id(weather_2_temperature_c).turn_off();
+        - script.execute: build_weather_message
+    turn_off_action:
+        - lambda: |-
+            if (!id(weather_2_temperature_c).state) ESP_LOGI("info", "Weather Temperature °F Off");
+        - script.execute: build_weather_message
+    entity_category: config
+    icon: mdi:temperature-fahrenheit
+  - platform: template
+    name: "Weather 3 Feels Like °C"
+    id: weather_3_apparent_temperature_c
+    restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: true
+    turn_on_action:
+        - lambda: |-
+            ESP_LOGI("info", "Weather Feels Like °C On");
+            if (id(weather_3_apparent_temperature_f).state) id(weather_3_apparent_temperature_f).turn_off();
+        - script.execute: build_weather_message
+    turn_off_action:
+        - lambda: |-
+            if (!id(weather_3_apparent_temperature_f).state) ESP_LOGI("info", "Weather Feels Like °C Off");
+        - script.execute: build_weather_message
+    entity_category: config
+    icon: mdi:temperature-celsius
+  - platform: template
+    name: "Weather 3 Feels Like °F"
+    id: weather_3_apparent_temperature_f
+    restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: true
+    turn_on_action:
+        - lambda: |-
+            ESP_LOGI("info", "Weather Feels Like °F On");
+            if (id(weather_3_apparent_temperature_c).state) id(weather_3_apparent_temperature_c).turn_off();
+        - script.execute: build_weather_message
+    turn_off_action:
+        - lambda: |-
+            if (!id(weather_3_apparent_temperature_c).state) ESP_LOGI("info", "Weather Feels Like °F Off");
+        - script.execute: build_weather_message
+    entity_category: config
+    icon: mdi:temperature-fahrenheit
+  - platform: template
+    name: "Weather 4 Humidity"
+    id: weather_4_humidity
+    restore_mode: RESTORE_DEFAULT_ON
+    optimistic: true
+    turn_on_action:
+        - lambda: 'ESP_LOGI("info", "Weather Humidity On");'
+        - script.execute: build_weather_message
+    turn_off_action:
+        - lambda: 'ESP_LOGI("info", "Weather Humidity Off");'
+        - script.execute: build_weather_message
+    entity_category: config
+    icon: mdi:water-percent
 
 number:
   - platform: template
@@ -978,23 +1267,6 @@ number:
     entity_category: config
     icon: mdi:yin-yang
   - platform: template
-    name: "Time Zone Offset"
-    id: tzoffset
-    restore_value: true
-    optimistic: true
-    step: 0.25
-    min_value: -26
-    max_value: 26
-    initial_value: 0
-    mode: box
-    unit_of_measurement: hours
-    set_action:
-      then:
-        - lambda: |-
-            ESP_LOGI("info", "Time Zone Offset: %.2f hours", x);
-    entity_category: config
-    icon: mdi:clock-plus
-  - platform: template
     name: "Time Sync Interval"
     id: sync_time
     restore_value: true
@@ -1047,14 +1319,14 @@ number:
     entity_category: config
     icon: mdi:lightbulb-off
   - platform: template
-    name: "Display Off When No Wifi Time (seconds) (0 Disable)"
+    name: "Display Off When No Wifi Time (0 Disable)"
     id: display_off_no_wifi_time
     restore_value: true
     optimistic: true
     step: 5
     min_value: 0
     max_value: 180
-    initial_value: 60
+    initial_value: 0
     mode: box
     unit_of_measurement: seconds
     set_action:
@@ -1064,3 +1336,93 @@ number:
         - script.execute: display_off_deactivate
     entity_category: config
     icon: mdi:lightbulb-off
+  - platform: template
+    name: "Weather Latitude"
+    id: latitude
+    restore_value: true
+    optimistic: true
+    step: 0.0001
+    min_value: -90
+    max_value: 90
+    initial_value: 43.9500
+    mode: box
+    unit_of_measurement: °
+    set_action:
+      then:
+        - lambda: |-
+            ESP_LOGI("info", "Latitude: %.4f°", x);
+            id(weather).set_latitude([x](){ return x; });
+        - script.execute: force_weather_update
+    entity_category: config
+    icon: mdi:latitude
+  - platform: template
+    name: "Weather Longitude"
+    id: longitude
+    restore_value: true
+    optimistic: true
+    step: 0.0001
+    min_value: -180
+    max_value: 180
+    initial_value: -59.9100
+    mode: box
+    unit_of_measurement: °
+    set_action:
+      then:
+        - lambda: |-
+            ESP_LOGI("info", "Longitude: %.4f°", x);
+            id(weather).set_longitude([x](){ return x; });
+        - script.execute: force_weather_update
+    entity_category: config
+    icon: mdi:longitude
+  - platform: template
+    name: "Weather Update Interval"
+    id: weather_update_interval
+    restore_value: true
+    optimistic: true
+    step: 1
+    min_value: 10
+    max_value: 60
+    initial_value: 10
+    mode: box
+    unit_of_measurement: minutes
+    on_value:
+      then:
+        - lambda: |-
+            ESP_LOGI("info", "Weather Update Interval: %.0f minutes", x);
+            id(weather).set_update_interval(x * 60000);
+    entity_category: config
+    icon: mdi:radar
+  - platform: template
+    name: "Weather Display Time"
+    id: weather_display_time
+    restore_value: true
+    optimistic: true
+    step: 1
+    min_value: 1
+    max_value: 60
+    initial_value: 1
+    mode: box
+    unit_of_measurement: seconds
+    on_value:
+      then:
+        - lambda: |-
+            ESP_LOGI("info", "Weather Display Time: %.0f seconds", x);
+    entity_category: config
+    icon: mdi:weather-cloudy-clock
+  - platform: template
+    name: "Weather Intervals"
+    id: weather_interval
+    restore_value: true
+    optimistic: true
+    step: 1
+    min_value: 1
+    max_value: 10
+    initial_value: 1
+    mode: box
+    unit_of_measurement: intervals
+    set_action:
+      then:
+        - lambda: |-
+            ESP_LOGI("info", "Weather Intervals: %.0f", x);
+    entity_category: config
+    icon: mdi:weather-cloudy-clock
