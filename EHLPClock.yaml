@@ -678,22 +678,20 @@ display:
                   }
                   id(replace_mode_auto).toggle();
                 }
-            }
-            // show the weather (if it's available)
-            if (!id(weather_combined).state.empty()) {
-              id(weather_interval_count) += 1;
-              ESP_LOGI("info", "Weather interval count: %d / %d", id(weather_interval_count), (int)id(weather_interval).state);
-              if (id(weather_interval_count) >= id(weather_interval).state) {
-                id(weather_interval_count) = 0;
-                // shortcut: use the 'message' which suspends other counting...
-                ESP_LOGI("info", "Showing Weather: %s", id(weather_combined).state.c_str());
-                id(message) = id(weather_combined).state.c_str();
-                id(message_alive_time) = id(weather_display_time_real);
-                id(message_display_time) = id(weather_display_time_real);
-                id(message_clock_time) = 0;
+              }
+              // show the weather (if it's available)
+              if (!id(weather_combined).state.empty()) {
+                id(weather_interval_count) += 1;
+                if (id(weather_interval_count) >= id(weather_interval).state) {
+                  id(weather_interval_count) = 0;
+                  // shortcut: use the 'message' which suspends other counting...
+                  id(message) = id(weather_combined).state.c_str();
+                  id(message_alive_time) = id(weather_display_time_real);
+                  id(message_display_time) = id(weather_display_time_real);
+                  id(message_clock_time) = 0;
+                }
               }
             }
-          }
         }
       } else {
         if (!id(display_off)) {

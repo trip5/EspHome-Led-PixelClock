@@ -332,6 +332,7 @@ I've found anything below 8kB available to the heap can cause constant crashes.
 
 | Date       | Release Notes    |
 | ---------- | ---------------- |
+| 2026.04.11 | Non-HA versions: ehDP component updated, Weather component updated |
 | 2026.04.08 | Non-HA versions: ehDP fixed, both time zones changeable in UI, Auto Replacement = Alt. Time added, Weather Temperature options added, Time Zone Offset completely removed (which affects all files) |
 | 2026.03.24 | Added ehDP to non-HA versions. Get [eh Device Scanner](https://github.com/trip5/eh-Device-Scanner) to use it. |
 | 2026.01.24 | Minor fixes, Github page added with mkdocs and web flashing tool |
