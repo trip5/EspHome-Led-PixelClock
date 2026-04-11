@@ -1,7 +1,7 @@
 {
   "project": "EspHome-Led-PixelClock",
-  "version": "2026.03.24",
-  "build_date": "2026-03-24 07:00:37 UTC",
+  "version": "2026.04.08",
+  "build_date": "2026-04-08 04:20:46 UTC",
   "variants": [
   {
     "name": "Chinese - Home Assistant",
